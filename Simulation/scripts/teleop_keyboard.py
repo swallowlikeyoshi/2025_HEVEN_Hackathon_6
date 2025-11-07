@@ -13,7 +13,7 @@ __email__ = 'gkourosg@yahoo.gr'
 import roslib
 import rospy
 from ackermann_msgs.msg import AckermannDrive
-from std_msgs.msg import Float64, Bool
+from std_msgs.msg import Float64
 import sys, select, termios, tty
 
 try:
@@ -55,7 +55,7 @@ class AckermannDriveKeyop:
         #     max_speed = 2
         #     max_steering_angle = 0.7
         max_speed = 2
-        max_steering_angle = 1.8
+        max_steering_angle = 0.7
         cmd_topic = 'drive'
 
         # if len(args) > 2:
@@ -69,16 +69,13 @@ class AckermannDriveKeyop:
         for key in key_bindings:
             key_bindings[key] = \
                     (key_bindings[key][0] * float(max_speed) / 5,
-                     key_bindings[key][1] * float(max_steering_angle) / 10)
+                     key_bindings[key][1] * float(max_steering_angle) / 5)
 
         self.speed = 0
         self.steering_angle = 0
         self.motors_pub = rospy.Publisher(
             cmd_topic, AckermannDrive, queue_size=1)
         rospy.Timer(rospy.Duration(1.0/5.0), self.pub_callback, oneshot=False)
-        
-        self.timer_start_pub = rospy.Publisher('/timer_start', Bool, queue_size=1)
-
         self.print_state()
         self.key_loop()
 
@@ -134,9 +131,6 @@ class AckermannDriveKeyop:
                 break
             else:
                 continue
-            timer_start_msg = Bool()
-            timer_start_msg.data = True
-            self.timer_start_pub.publish(timer_start_msg)
         self.finalize()
 
     def finalize(self):
@@ -151,5 +145,4 @@ class AckermannDriveKeyop:
 if __name__ == '__main__':
     rospy.init_node('ackermann_drive_keyop_node')
     # keyop = AckermannDriveKeyop(sys.argv[1:len(sys.argv)])
-
     keyop = AckermannDriveKeyop()

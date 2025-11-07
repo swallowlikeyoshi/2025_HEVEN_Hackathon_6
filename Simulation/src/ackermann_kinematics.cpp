@@ -9,9 +9,6 @@ double AckermannKinematics::angular_velocity(
     double velocity,
     double steering_angle,
     double wheelbase) {
-  if(velocity <= 0.00001) {
-    return std::tan(steering_angle) / wheelbase;
-  }
   return velocity * std::tan(steering_angle) / wheelbase;
 }
 

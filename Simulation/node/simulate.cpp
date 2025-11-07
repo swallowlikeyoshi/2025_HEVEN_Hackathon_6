@@ -9,8 +9,6 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <vector>
-#include <geometry_msgs/Point.h>
 
 #include "racecar_simulator/pose_2d.hpp"
 #include "racecar_simulator/ackermann_kinematics.hpp"
@@ -31,8 +29,6 @@ class RacecarSimulator {
     double previous_seconds;
     double scan_distance_to_base_link;
     double max_speed, max_steering_angle;
-
-    bool initialized = false;
 
     // A simulator of the laser
     ScanSimulator2D scan_simulator;
@@ -67,9 +63,6 @@ class RacecarSimulator {
 
     // Listen for drive and joystick commands
     ros::Subscriber drive_sub;
-    ros::Timer drive_watchdog_timer;  // drive 타이머
-    double drive_timeout;             // drive 타임아웃 시간
-    bool drive_message_received;      // drive 수신 상태 플래그
     ros::Subscriber joy_sub;
 
     // Listen for a map
@@ -100,14 +93,6 @@ class RacecarSimulator {
       speed = 0;
       steering_angle = 0;
       previous_seconds = ros::Time::now().toSec();
-
-      drive_timeout = 0.2;
-      drive_message_received = false;
-      drive_watchdog_timer = n.createTimer(
-          ros::Duration(drive_timeout), 
-          &RacecarSimulator::drive_watchdog_callback, 
-          this
-      );
 
       // Get the topic names
       std::string joy_topic, drive_topic, map_topic, 
@@ -194,10 +179,6 @@ class RacecarSimulator {
 
     void update_pose(const ros::TimerEvent&) {
 
-      if (!initialized) {
-        pose.theta = M_PI;  // 180도 회전 설정
-        initialized = true;
-      }
       // Update the pose
       ros::Time timestamp = ros::Time::now();
       double current_seconds = timestamp.toSec();
@@ -304,16 +285,8 @@ class RacecarSimulator {
     void drive_callback(const ackermann_msgs::AckermannDrive & msg) {
       set_speed(msg.speed);
       set_steering_angle(msg.steering_angle, ros::Time::now());
-      drive_message_received = true;
     }
 
-    void drive_watchdog_callback(const ros::TimerEvent&) {
-      if (!drive_message_received) {
-        set_speed(0.0);
-        set_steering_angle(0.0, ros::Time::now());
-      }
-      drive_message_received = false; 
-    }
 
     void joy_callback(const sensor_msgs::Joy & msg) {
       set_speed(
@@ -386,15 +359,14 @@ class RacecarSimulator {
       for (size_t i = 0; i < msg.data.size(); i++) {
           if (msg.data[i] > 100 || msg.data[i] < 0) {
               original_map_data[i] = 0.5; // Unknown
-          } else {
+        } else {
               original_map_data[i] = msg.data[i] / 100.0;
-          }
+        }
       }
 
       map_exists = true;
       update_map_with_obstacles(); // 맵 초기화 후 장애물 반영
     }
-
 };
 
 int main(int argc, char ** argv) {

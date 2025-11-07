@@ -62,40 +62,40 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_footprint:
+        back_left_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
+        back_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        base_scan:
+        front_left_hinge:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_left_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        caster_back_link:
+        front_right_hinge:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_right_wheel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        housing_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        wheel_left_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wheel_right_link:
+        laser_model:
           Alpha: 1
           Show Axes: false
           Show Trail: false
