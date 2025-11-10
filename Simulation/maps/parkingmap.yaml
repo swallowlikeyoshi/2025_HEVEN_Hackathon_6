@@ -1,0 +1,7 @@
+image: parkingmap.png
+resolution: 0.100000
+origin: [-1.500000, -0.500000, 0.000000]
+negate: 0
+occupied_thresh: 0.5
+free_thresh: 0.2
+

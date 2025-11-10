@@ -3,7 +3,7 @@
   <arg name="map_number" default="1"/>
 
   <!-- Launch a map from the maps folder -->
-  <arg name="map" default="$(find racecar_simulator)/maps/2024/mapfff.yaml"/>
+  <arg name="map" default="$(find racecar_simulator)/maps/parkingmap.yaml"/>
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map)"/>
   
   <!-- Launch the racecar model -->

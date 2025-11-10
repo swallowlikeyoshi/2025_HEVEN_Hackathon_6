@@ -4,7 +4,7 @@ wheelbase: 0.325 # meters
 
 # Limits on the speed and steering angle
 max_speed: 4. # meters/second
-max_steering_angle: 0.34 # radians
+max_steering_angle: 0.5 # radians
 
 # The rate at which the pose and the lidar publish
 update_pose_rate: 0.02
