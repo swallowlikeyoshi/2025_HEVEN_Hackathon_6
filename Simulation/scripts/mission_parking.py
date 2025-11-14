@@ -79,6 +79,7 @@ class ParkingMission(Mission):
                     complete_msg.complete = True
                     self.complete.publish(complete_msg)
                     # 전체 mission end publish
+                    #self.end_complete.publish(complete_msg)
                     
                     # Reset the trigger
                     self.parking_flag = 0
