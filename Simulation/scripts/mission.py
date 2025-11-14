@@ -75,10 +75,21 @@ class Mainmission:
         else:
             rospy.logerr("Incorrect map_number when making a Goal list!")
         # bash 파일의 input number에 따라 정해진 parking number를 바탕으로 parking goal 생성
+        """
         if param.MAP_1_PARKING_AREA == 1:
             self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_1, param.MAP_1_PARKING_LOT_Y_1)), yaw=param.MAP_1_PARKING_LOT_YAW_1, number=1))
         elif param.MAP_1_PARKING_AREA == 2:
             self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_2, param.MAP_1_PARKING_LOT_Y_2)), yaw=param.MAP_1_PARKING_LOT_YAW_2, number=2))
+        elif param.MAP_1_PARKING_AREA == 3:
+            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_3, param.MAP_1_PARKING_LOT_Y_3)), yaw=param.MAP_1_PARKING_LOT_YAW_3, number=3))
+        """
+        if param.MAP_1_PARKING_AREA == 1: #나중에 map이 여러개 추가되면 수정필요
+            #전면 주차
+            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_1, param.MAP_1_PARKING_LOT_Y_1)), yaw=param.MAP_1_PARKING_LOT_YAW_1, number=1))
+            #후면 주차
+            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_2, param.MAP_1_PARKING_LOT_Y_2)), yaw=param.MAP_1_PARKING_LOT_YAW_2, number=2))
+            #평행 주차
+            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_3, param.MAP_1_PARKING_LOT_Y_3)), yaw=param.MAP_1_PARKING_LOT_YAW_3, number=3))
         else:
             rospy.logerr("Incorrect map_number when making a Goal list!")
         # =====================================================================================================================================================
@@ -232,18 +243,29 @@ class Mainmission:
             if self.mission_list[SCURVE].num_success_scurve[0] == 1:
                 text_3 += "Sucess"
             
-            text_4 = "Parking : "
+            text_4 = "Front Parking : "
+            text_5 = "Rear Parking : "
+            text_6 = "Parallel Parking : "
 
-            if self.mission_list[PARKING_SPOT].num_success_parking[param.MAP_1_PARKING_AREA - 1] == 1:
+            if self.mission_list[PARKING_SPOT].num_success_parking[0] == 1:
                 text_4 += "Success"
+            if self.mission_list[PARKING_SPOT].num_success_parking[1] == 1:
+                text_5 += "Success"
+            if self.mission_list[PARKING_SPOT].num_success_parking[2] == 1:
+                text_6 += "Success"
 
 
             font = cv2.FONT_HERSHEY_SIMPLEX
 
-            cv2.putText(img, text_1, (0, 30), font, 1, (255, 255, 255), 2)
-            cv2.putText(img, text_2, (0, 70), font, 1, (255, 255, 255), 2)
-            cv2.putText(img, text_3, (0, 110), font, 1, (255, 255, 255), 2)
-            cv2.putText(img, text_4, (0, 150), font, 1, (255, 255, 255), 2)
+            initial_font_pos = 30
+            font_dist = 30
+
+            cv2.putText(img, text_1, (0, initial_font_pos+font_dist*0), font, 0.7, (255, 255, 255), 2)
+            cv2.putText(img, text_2, (0, initial_font_pos+font_dist*1), font, 0.7, (255, 255, 255), 2)
+            cv2.putText(img, text_3, (0, initial_font_pos+font_dist*2), font, 0.7, (255, 255, 255), 2)
+            cv2.putText(img, text_4, (0, initial_font_pos+font_dist*3), font, 0.7, (255, 255, 255), 2)
+            cv2.putText(img, text_5, (0, initial_font_pos+font_dist*4), font, 0.7, (255, 255, 255), 2)
+            cv2.putText(img, text_6, (0, initial_font_pos+font_dist*5), font, 0.7, (255, 255, 255), 2)
             pass
 
         cv2.imshow("mission_image",img)
