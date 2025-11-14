@@ -11,7 +11,6 @@ from parameter_list import Param
 from abstract_mission import Mission, Carstatus
 
 param = Param()
-EPSILON = 0.001 #속도 임계값
 
 
 class ParkingMission(Mission):
@@ -30,7 +29,7 @@ class ParkingMission(Mission):
         self.num_success_parking = [0,0,0]      # Map 1
 
     def main(self, goal=Goal, car=Carstatus):
-        if goal.number in [1, 2, 3]:
+        if goal.number == param.MAP_1_PARKING_AREA:
             if self.num_success_parking[goal.number - 1] == 1:
                 # Already Succeed
                 # rospy.loginfo("Finished Parking. Go ahead.")
@@ -41,7 +40,7 @@ class ParkingMission(Mission):
                 
                 if self.parking_index == 0:
                     # Check if a car is stopped
-                    if abs(car.speed) < EPSILON and self.is_in_parking(goal.position, goal.yaw, car.position, car.position_yaw):
+                    if car.speed == 0 and self.is_in_parking(goal.position, goal.yaw, car.position, car.position_yaw):
                         self.parking_start_time = time.time()
                         self.parking_index += 1
 
@@ -53,7 +52,7 @@ class ParkingMission(Mission):
                         self.parking_flag = 1
                         self.parking_index += 1
 
-                    elif time.time() - self.parking_start_time < 3 and abs(car.speed) >= EPSILON:
+                    elif time.time() - self.parking_start_time < 3 and car.speed != 0:
                         # Parking fail
                         rospy.loginfo("Parking mission failed...")
                         self.parking_flag = 0
@@ -79,7 +78,8 @@ class ParkingMission(Mission):
                     complete_msg.complete = True
                     self.complete.publish(complete_msg)
                     # 전체 mission end publish
-                    
+                    self.end_complete.publish(complete_msg)
+
                     # Reset the trigger
                     self.parking_flag = 0
                     self.parking_index = 0
@@ -89,32 +89,11 @@ class ParkingMission(Mission):
     
     def is_in_mission(self, goal=Goal, car=Carstatus):
         # Check if a car is in the parking lot
-        if goal.number == 1:
-            min_x = param.MAP_1_PARKING_AREA_1_MINX
-            max_x = param.MAP_1_PARKING_AREA_1_MAXX
-            min_y = param.MAP_1_PARKING_AREA_1_MINY
-            max_y = param.MAP_1_PARKING_AREA_1_MAXY
-        elif goal.number == 2:
-            min_x = param.MAP_1_PARKING_AREA_2_MINX
-            max_x = param.MAP_1_PARKING_AREA_2_MAXX
-            min_y = param.MAP_1_PARKING_AREA_2_MINY
-            max_y = param.MAP_1_PARKING_AREA_2_MAXY
-        elif goal.number == 3:
-            min_x = param.MAP_1_PARKING_AREA_3_MINX
-            max_x = param.MAP_1_PARKING_AREA_3_MAXX
-            min_y = param.MAP_1_PARKING_AREA_3_MINY
-            max_y = param.MAP_1_PARKING_AREA_3_MAXY
-        else :
-            return False
-        
-        car_x = car.position[0]
-        car_y = car.position[1]
-        is_car_in_x_range = min_x <= car_x <= max_x
-        is_car_in_y_range = min_y <= car_y <= max_y
         position_diff = goal.position - car.position
         yaw_diff = goal.yaw - car.position_yaw
         # We need to check : x, y (close to the area?)
-        if (is_car_in_x_range and is_car_in_y_range):
+        if (param.MAP_1_PARKING_MINX <= car.position[0] <= param.MAP_1_PARKING_MAXX and
+            param.MAP_1_PARKING_MINY <= car.position[1] <= param.MAP_1_PARKING_MAXY):
             # Publish parking info
             # 차량 좌표계를 기준으로 목표점과 정확히 일치하기 위한 좌표값 계산.
             parking_vector = np.array([[goal.position[0]], [goal.position[1]]])
