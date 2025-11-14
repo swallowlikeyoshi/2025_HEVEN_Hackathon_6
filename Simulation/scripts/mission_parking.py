@@ -111,8 +111,8 @@ class ParkingMission(Mission):
         car_y = car.position[1]
         is_car_in_x_range = min_x <= car_x <= max_x
         is_car_in_y_range = min_y <= car_y <= max_y
-        position_diff = goal.position - car.position
-        yaw_diff = goal.yaw - car.position_yaw
+        #position_diff = goal.position - car.position
+        #yaw_diff = goal.yaw - car.position_yaw
         # We need to check : x, y (close to the area?)
         if (is_car_in_x_range and is_car_in_y_range):
             # Publish parking info
