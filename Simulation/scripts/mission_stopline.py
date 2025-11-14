@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 import time
+import random
 
 from goal import *
 from racecar_simulator.msg import Complete, Traffic
@@ -25,6 +26,7 @@ class StopLineMission(Mission):
         self.stop_time = 0              # 차량이 멈춘 시간
         self.stop_index = 0             # 미션의 현재 상태(state)를 정의하는 변수
         self.stop_flag = 1              # 미션 성공시 1, 실패시 0
+        self.stop_duration = param.STOP_LINE_TIME  # 기본값 5초 (fallback)
         if self.map_number == 1:
             self.num_success_stop = [0,0]
         elif self.map_number == 2:
@@ -42,27 +44,57 @@ class StopLineMission(Mission):
             self.traffic.publish(traffic_msg)
         
         else:
-            # rospy.loginfo("Curr idx %d" %(self.stop_index))
-            if self.stop_index == 0:
-                # 차가 멈추었는 지 확인
-                if abs(car.speed) < 0.00001 and self.is_in_stopline(goal, car):
-                    rospy.loginfo("Stopped...")
-                    self.stop_time = time.time()
-                    self.stop_index += 1
+            # --- 정지선 미션 상태머신 ---
 
-                traffic_msg.traffic = "STOP"
-                traffic_msg.second = param.STOP_LINE_TIME
-                self.traffic.publish(traffic_msg)
-            
+            # 0단계: "정지선 근처에 들어온 순간"부터 빨간불 + 랜덤 타이머
+            if self.stop_index == 0:
+                # 정지선 근처인지(기존 is_in_stopline 그대로 사용)
+                if self.is_in_stopline(goal, car):
+                    # 처음 들어온 순간에만 랜덤 대기시간 설정
+                    if self.stop_time == 0:
+                        self.stop_time = time.time()
+                        self.stop_duration = random.uniform(3.0, 5.0)
+                        rospy.loginfo(
+                            f"[STOP_LINE] Approached stop line, RED for {self.stop_duration:.2f} sec"
+                        )
+
+                    elapsed = time.time() - self.stop_time
+
+                    if elapsed < self.stop_duration:
+                        # 아직 빨간불 유지 구간
+                        traffic_msg.traffic = "STOP"
+                        traffic_msg.second = max(self.stop_duration - elapsed, 0.0)
+                        self.traffic.publish(traffic_msg)
+                        return
+                    else:
+                        # 빨간불 대기시간이 끝난 순간
+                        # → STOP + 0 을 한 번 보내고, 다음 state로 넘김
+                        traffic_msg.traffic = "STOP"
+                        traffic_msg.second = 0.0
+                        self.traffic.publish(traffic_msg)
+
+                        self.stop_index = 1   # 이후 단계(성공/실패 판정용)로 이동
+                        return
+
+                else:
+                    # 아직 정지선 구간에 안 들어왔으면 초기화
+                    self.stop_time = 0
+                    traffic_msg.traffic = "None"
+                    traffic_msg.second = 0.0
+                    self.traffic.publish(traffic_msg)
+                    return
+
             elif self.stop_index == 1:
+                elapsed = time.time() - self.stop_time
+
                 # After a car stopped
-                if time.time() - self.stop_time >= param.STOP_LINE_TIME:
+                if elapsed >= self.stop_duration:
                     # Stop success
                     rospy.loginfo("Stop mission success!")
                     self.stop_flag = 1
                     self.stop_index += 1
 
-                elif time.time() - self.stop_time < param.STOP_LINE_TIME and abs(car.speed) > 0.00001:
+                elif elapsed < self.stop_duration and abs(car.speed) > 0.00001:
                     # Stop fail
                     rospy.loginfo("Stop mission failed...")
                     self.stop_flag = 0
@@ -70,9 +102,9 @@ class StopLineMission(Mission):
                 
                 else:
                     rospy.loginfo("Trying to stop...")
-                
+
                 traffic_msg.traffic = "STOP"
-                traffic_msg.second = param.STOP_LINE_TIME - (time.time() - self.stop_time)
+                traffic_msg.second = max(self.stop_duration - elapsed, 0.0)
                 self.traffic.publish(traffic_msg)
 
             elif self.stop_index == 2:

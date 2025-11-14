@@ -73,8 +73,8 @@ def MakeTrafficMarker(map_number):
         stop_sign.scale.x = param.SIZE_OF_TROPHY
         stop_sign.scale.y = param.SIZE_OF_TROPHY
         stop_sign.scale.z = 0
-        stop_sign.pose.position.x = param.MAP_1_STOP_LINE_X_1 - 0.5
-        stop_sign.pose.position.y = param.MAP_1_STOP_LINE_Y_1 + 0.3
+        stop_sign.pose.position.x = param.MAP_1_STOP_LINE_X_1 + 0.5
+        stop_sign.pose.position.y = param.MAP_1_STOP_LINE_Y_1 + 0.2
         stop_sign.pose.position.z = 0
         stop_sign.pose.orientation.x = 0.0
         stop_sign.pose.orientation.y = 0.0
@@ -118,8 +118,8 @@ def MakeTrafficMarker(map_number):
         stop_sign_2.scale.x = param.SIZE_OF_TROPHY
         stop_sign_2.scale.y = param.SIZE_OF_TROPHY
         stop_sign_2.scale.z = 0
-        stop_sign_2.pose.position.x = param.MAP_1_STOP_LINE_X_1 - 0.5
-        stop_sign_2.pose.position.y = param.MAP_1_STOP_LINE_Y_1 - 0.3
+        stop_sign_2.pose.position.x = param.MAP_1_STOP_LINE_X_1 + 0.5
+        stop_sign_2.pose.position.y = param.MAP_1_STOP_LINE_Y_1 - 0.2
         stop_sign_2.pose.position.z = 0
         stop_sign_2.pose.orientation.x = 0.0
         stop_sign_2.pose.orientation.y = 0.0
