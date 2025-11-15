@@ -2,7 +2,7 @@
   <!-- Mission number (1, 2, 3) -->
   <arg name="map_number" default="1"/>
   <!-- Moving obstacle speed (Hz) -->
-  <arg name="obs_speed" default="500"/>
+  <arg name="obs_speed" default="300"/>
 
   <!-- Launch a map from the maps folder -->
   <arg name="map" default="$(find racecar_simulator)/maps/parkingmap.yaml"/>
