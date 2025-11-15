@@ -62,7 +62,7 @@ Windows 환경에서도 다음의 링크를 참고하여 편하게 개발할 수
 * 시뮬레이터 실행
     ```
     cd ~/catkin_ws/src/2025_HEVEN_Hackathon/Simulation
-    bash simulate.sh <주차 구역 number>
+    bash simulate.sh 1 <map number>
     ```
     
 * 자율주행 알고리즘 (brain) 실행
