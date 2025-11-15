@@ -2,7 +2,7 @@
   <!-- Mission number (1, 2, 3) -->
   <arg name="map_number" default="1"/>
   <!-- Moving obstacle speed (Hz) -->
-  <arg name="obs_speed" default="500"/>
+  <arg name="obs_speed" default="300"/>
     <!-- #########################수정함 11/14 정적장애물#############################/ -->
     <!-- Static Obstacle Number -->
   <arg name="map_obs_pos" default="1"/>

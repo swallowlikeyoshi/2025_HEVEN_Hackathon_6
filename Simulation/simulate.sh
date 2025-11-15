@@ -20,7 +20,7 @@ export MAP_1_PARKING_AREA=$PARKING_NUMBER
 
 
 # 시뮬 실행 
-source ~/simul_ws/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 roslaunch racecar_simulator simulate.launch map_number:=1 map_obs_pos:=$STATIC_OBS_NUM
 
 
