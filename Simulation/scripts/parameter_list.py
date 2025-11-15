@@ -52,18 +52,18 @@ class Param():
 
         # Center point of parking lot in MAP 1
         #전면 주차 //테스트 중//
-        self.MAP_1_PARKING_LOT_X_1 = 2.928  #2.548
-        self.MAP_1_PARKING_LOT_Y_1 = 0      #2.743
-        self.MAP_1_PARKING_LOT_YAW_1 = 0    #-90
+        self.MAP_1_PARKING_LOT_X_1 = 2.548  #2.548
+        self.MAP_1_PARKING_LOT_Y_1 = 2.743  #2.743
+        self.MAP_1_PARKING_LOT_YAW_1 = -90  #-90
 
         #후면 주차
-        self.MAP_1_PARKING_LOT_X_2 = 4.5    #3.736
-        self.MAP_1_PARKING_LOT_Y_2 = 0      #7.249
-        self.MAP_1_PARKING_LOT_YAW_2 = 0    #180
+        self.MAP_1_PARKING_LOT_X_2 = 3.736  #3.736
+        self.MAP_1_PARKING_LOT_Y_2 = 7.249  #7.249
+        self.MAP_1_PARKING_LOT_YAW_2 = 180  #180
         
         #평행 주차
-        self.MAP_1_PARKING_LOT_X_3 = 7      #9.580
-        self.MAP_1_PARKING_LOT_Y_3 = 0      #7.969
+        self.MAP_1_PARKING_LOT_X_3 = 9.580  #9.580
+        self.MAP_1_PARKING_LOT_Y_3 = 7.969  #7.969
         self.MAP_1_PARKING_LOT_YAW_3 = 0    #0
 
         #주차구역
