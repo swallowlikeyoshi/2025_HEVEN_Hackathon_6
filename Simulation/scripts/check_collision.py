@@ -11,7 +11,7 @@ import os
 from math import pi
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Pose
-from racecar_simulator.msg import CenterPose, Complete
+from racecar_simulator.msg import CenterPose, Complete, Traffic
 from parameter_list import Param
 from ackermann_msgs.msg import AckermannDrive
 from tf.transformations import quaternion_from_euler

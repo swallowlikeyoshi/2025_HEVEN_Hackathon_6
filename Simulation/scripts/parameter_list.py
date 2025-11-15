@@ -2,7 +2,7 @@ import os
 from visualization_msgs.msg import Marker, MarkerArray
 
 # (Map 1) 주차 공간 (1, 2) -> bash 파일로부터 input 받아옴
-MAP_1_PARKING_AREA = int(os.getenv("MAP_1_PARKING_AREA", 1))  # 기본값 1
+MAP_1_PARKING_AREA = 1 #int(os.getenv("MAP_1_PARKING_AREA", 1))  # 기본값 1
 
 class Param():
     def __init__(self):
@@ -13,7 +13,7 @@ class Param():
         self.WHEELBASE = 0.425
         self.REAR_LIDAR = 0.325
         self.WIDTH = 0.145
-        self.SIZE_OF_TROPHY = 0.5
+        self.SIZE_OF_TROPHY = 0.45
 
         # Endpoint of Map 1
         self.END_POINT_X_1 = 33.580
@@ -33,9 +33,9 @@ class Param():
         # Center of stop line
         
         # 24_heackaton stop line location
-        self.MAP_1_STOP_LINE_X_1 = -6.0
-        self.MAP_1_STOP_LINE_Y_1 = -0.0
-        self.MAP_1_STOP_LINE_YAW_1 = 180.0 
+        self.MAP_1_STOP_LINE_X_1 = 3.0
+        self.MAP_1_STOP_LINE_Y_1 = 0.0
+        self.MAP_1_STOP_LINE_YAW_1 = 0.0 
 
         self.MAP_1_STOP_LINE_X_2 = 11.698
         self.MAP_1_STOP_LINE_Y_2 = -19.560
@@ -51,21 +51,41 @@ class Param():
         self.MAP_1_PARKING_AREA = MAP_1_PARKING_AREA
 
         # Center point of parking lot in MAP 1
-        self.MAP_1_PARKING_LOT_X_1 = -3.7
-        self.MAP_1_PARKING_LOT_Y_1 = 8
-        self.MAP_1_PARKING_LOT_YAW_1 = -90
+        #전면 주차 //테스트 중//
+        self.MAP_1_PARKING_LOT_X_1 = 2.548  #2.548
+        self.MAP_1_PARKING_LOT_Y_1 = 2.743  #2.743
+        self.MAP_1_PARKING_LOT_YAW_1 = -90  #-90
 
-        self.MAP_1_PARKING_LOT_X_2 = -1.8
-        self.MAP_1_PARKING_LOT_Y_2 = 8
-        self.MAP_1_PARKING_LOT_YAW_2 = -90
+        #후면 주차
+        self.MAP_1_PARKING_LOT_X_2 = 3.736  #3.736
+        self.MAP_1_PARKING_LOT_Y_2 = 7.249  #7.249
+        self.MAP_1_PARKING_LOT_YAW_2 = 180  #180
+        
+        #평행 주차
+        self.MAP_1_PARKING_LOT_X_3 = 9.580  #9.580
+        self.MAP_1_PARKING_LOT_Y_3 = 7.969  #7.969
+        self.MAP_1_PARKING_LOT_YAW_3 = 0    #0
 
-        self.MAP_1_PARKING_MINX = -5.33
-        self.MAP_1_PARKING_MINY = 5.01
-        self.MAP_1_PARKING_MAXX = -0.93
-        self.MAP_1_PARKING_MAXY = 8.83
+        #주차구역
+        self.MAP_1_PARKING_AREA_1_MINX = self.MAP_1_PARKING_LOT_X_1 - 0.3
+        self.MAP_1_PARKING_AREA_1_MAXX = self.MAP_1_PARKING_LOT_X_1 + 0.3
+        self.MAP_1_PARKING_AREA_1_MINY = self.MAP_1_PARKING_LOT_Y_1 - 0.3
+        self.MAP_1_PARKING_AREA_1_MAXY = self.MAP_1_PARKING_LOT_Y_1 + 0.3
+        
+        self.MAP_1_PARKING_AREA_2_MINX = self.MAP_1_PARKING_LOT_X_2 - 0.3
+        self.MAP_1_PARKING_AREA_2_MAXX = self.MAP_1_PARKING_LOT_X_2 + 0.3
+        self.MAP_1_PARKING_AREA_2_MINY = self.MAP_1_PARKING_LOT_Y_2 - 0.3
+        self.MAP_1_PARKING_AREA_2_MAXY = self.MAP_1_PARKING_LOT_Y_2 + 0.3
+        
+        self.MAP_1_PARKING_AREA_3_MINX = self.MAP_1_PARKING_LOT_X_3 - 0.3
+        self.MAP_1_PARKING_AREA_3_MAXX = self.MAP_1_PARKING_LOT_X_3 + 0.3
+        self.MAP_1_PARKING_AREA_3_MINY = self.MAP_1_PARKING_LOT_Y_3 - 0.3
+        self.MAP_1_PARKING_AREA_3_MAXY = self.MAP_1_PARKING_LOT_Y_3 + 0.3
 
-        # Tilt degree of parking lot in MAP 1
-        self.PARKING_LOT_TILT_DEGREE = 0
+        # Tilt degree of parking lot in MAP 1 
+        self.PARKING_LOT_TILT_DEGREE_1 = self.MAP_1_PARKING_LOT_YAW_1 + 90
+        self.PARKING_LOT_TILT_DEGREE_2 = self.MAP_1_PARKING_LOT_YAW_2 + 90
+        self.PARKING_LOT_TILT_DEGREE_3 = self.MAP_1_PARKING_LOT_YAW_3 + 90
 
         # Obstacle location
         self.MAP_1_OBS_1_x = 6.18
