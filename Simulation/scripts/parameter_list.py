@@ -68,9 +68,11 @@ class Param():
         self.PARKING_LOT_TILT_DEGREE = 0
 
         # Obstacle location
-        self.MAP_1_OBS_1_x = 6.18
+        # <!-- #########################수정함 11/14 정적장애물#############################/ -->
+        self.MAP_1_OBS_1_x = 3.68
         self.MAP_1_OBS_1_y = 8.62
-        self.MAP_1_OBS_2_x = 6.96
+        self.MAP_1_OBS_2_x = 4.46
+        # <!-- #########################수정함 11/14 정적장애물#############################/ -->
         self.MAP_1_OBS_2_y = 9.23
         self.MAP_1_OBS_yaw = 0.0
         self.MAP_1_OBS_MINX = -7.15

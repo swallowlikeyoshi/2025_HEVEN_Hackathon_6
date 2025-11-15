@@ -9,7 +9,7 @@ import numpy as np
 
 class ObstacleCreator:
     def __init__(self):
-        rospy.init_node('obstacle_maker')
+        rospy.init_node('static_obstacle_maker')
         
         self.param = Param()
 
@@ -30,50 +30,28 @@ class ObstacleCreator:
 
         self.obstacle_data = None
         self.map_received = False
-
-        self.obs1_x = self.param.MAP_1_OBS_1_x
-        self.obs1_y = self.param.MAP_1_OBS_1_y
-        self.obs2_x = self.param.MAP_1_OBS_2_x
-        self.obs2_y = self.param.MAP_1_OBS_2_y
-        self.obs_list = [[self.obs1_x, self.obs1_y],
-                         [self.obs2_x, self.obs2_y]]
-
-        self.curve_obs_list = [
-            [self.param.MAP_1_CURVE_OBS_1_x, self.param.MAP_1_CURVE_OBS_1_y],
-            [self.param.MAP_1_CURVE_OBS_2_x, self.param.MAP_1_CURVE_OBS_2_y],
-            [self.param.MAP_1_CURVE_OBS_3_x, self.param.MAP_1_CURVE_OBS_3_y],
-            [self.param.MAP_1_CURVE_OBS_4_x, self.param.MAP_1_CURVE_OBS_4_y],
-            [self.param.MAP_1_CURVE_OBS_5_x, self.param.MAP_1_CURVE_OBS_5_y],
-            [self.param.MAP_1_CURVE_OBS_6_x, self.param.MAP_1_CURVE_OBS_6_y],
-            [self.param.MAP_1_CURVE_OBS_7_x, self.param.MAP_1_CURVE_OBS_7_y],
-            [self.param.MAP_1_CURVE_OBS_8_x, self.param.MAP_1_CURVE_OBS_8_y]
-        ]
-
-        self.path_obs_list = [
-            self.param.OBS1,
-            self.param.OBS2,
-            self.param.OBS3,
-            self.param.OBS4,
-            self.param.OBS5,
-            self.param.OBS6,
-            self.param.OBS7,
-            self.param.OBS8,
-            self.param.OBS9,
-            self.param.OBS10,
-            self.param.OBS11,
-            self.param.OBS12,
-            self.param.OBS13,
-            self.param.OBS14,
-            self.param.OBS15,
-            self.param.OBS16,
-            self.param.OBS17,
-            self.param.OBS18,
-            self.param.OBS19,
-            self.param.OBS20,
-            self.param.OBS21,
-            self.param.OBS22,
-            self.param.OBS23
-        ]
+        
+        # --------------------- 장애물 위치 정하는 곳----------------------
+        self.obstacle_positions = {
+            1: [  # Position set 1
+                [self.param.MAP_1_OBS_1_x, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x, self.param.MAP_1_OBS_2_y]
+            ],
+            2: [  # Position set 2 (Example: Move obs1_x + 1.0)
+                [self.param.MAP_1_OBS_1_x + 1.0, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x + 1.0, self.param.MAP_1_OBS_2_y]
+            ],
+            3: [  # Position set 3 (Example: Move obs1_x + 2.0, obs2_y + 1.0)
+                [self.param.MAP_1_OBS_1_x + 2.25, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x + 2.25, self.param.MAP_1_OBS_2_y]
+            ],
+            4: [  # Position set 4 (Example: Move both to new area)
+                [self.param.MAP_1_OBS_1_x + 3.5, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x + 3.5, self.param.MAP_1_OBS_2_y]
+            ]
+        }
+        # Initially set the obstacle list to the default/first position
+        self.obs_list = self.obstacle_positions[1] 
 
         self.rate = rospy.Rate(self.param.thread_rate)
 
@@ -96,8 +74,9 @@ class ObstacleCreator:
             self.map_origin_x = msg.info.origin.position.x
             self.map_origin_y = msg.info.origin.position.y
 
+            # Important: Initialize grid_data with the map data
             self.grid_data = np.array(msg.data, dtype=np.int8).reshape(self.map_height, self.map_width)
-            self.obstacle_data = np.copy(self.grid_data)
+            self.obstacle_data = np.copy(self.grid_data) # Copy initial map data
 
             self.map_received = True
             rospy.loginfo("Map received and initialized.")
@@ -107,14 +86,19 @@ class ObstacleCreator:
             rospy.logwarn("Map not received yet. Waiting for map...")
             return
 
+        obs_pos_param = rospy.get_param('~map_obs_pos', 1) 
+        
+        # Validate and select the correct obstacle list
+        if obs_pos_param in self.obstacle_positions:
+            self.obs_list = self.obstacle_positions[obs_pos_param]
+        else:
+            rospy.logwarn(f"Invalid map_obs_pos parameter: {obs_pos_param}. Defaulting to position 1.")
+            self.obs_list = self.obstacle_positions[1]
+        self.grid_data = np.copy(self.obstacle_data)
+
+        # print("---------------------------------------------", obs_pos_param)
         for x,y in self.obs_list:
             self.add_obstacle_to_grid3x3(x, y)
-
-        for x,y in self.curve_obs_list:
-            self.add_obstacle_to_grid1x1(x, y)
-
-        for x,y in self.path_obs_list:
-            self.add_obstacle_to_grid1x1(x, y)
 
         self.publish_grid()
 
@@ -130,7 +114,7 @@ class ObstacleCreator:
             for dy in range(-1, 2):
                 nx, ny = grid_x + dx, grid_y + dy
                 if 0 <= nx < self.map_width and 0 <= ny < self.map_height:
-                    self.grid_data[ny, nx] = 100
+                    self.grid_data[ny, nx] = 100 # 100 = occupied
 
     def add_obstacle_to_grid1x1(self, x, y):
         if self.grid_data is None:
@@ -148,8 +132,9 @@ class ObstacleCreator:
         if self.grid_data is None:
             rospy.logwarn("Grid data is not initialized. Cannot publish grid.")
             return
-        updated_map = np.copy(self.grid_data)
-        updated_map[self.obstacle_data == 100] = 100
+        
+        # Use the updated grid_data directly
+        updated_map = self.grid_data 
 
         grid_msg = OccupancyGrid()
         grid_msg.header.frame_id = "map"
@@ -160,7 +145,8 @@ class ObstacleCreator:
         grid_msg.info.origin.position.x = self.map_origin_x
         grid_msg.info.origin.position.y = self.map_origin_y
         grid_msg.info.origin.orientation.w = 1.0
-        grid_msg.data = updated_map.flatten().astype(int).tolist()  # Ensure correct type
+        # Flatten the NumPy array back into a list and convert to int for ROS message
+        grid_msg.data = updated_map.flatten().astype(int).tolist()  
 
         self.grid_pub.publish(grid_msg)
 

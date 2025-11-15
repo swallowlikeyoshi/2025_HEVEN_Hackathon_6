@@ -14,7 +14,7 @@ class OdomToCSV:
 
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
 
-        self.csv_file = os.path.join(package_path, 'csvs', 'odom_path.csv')
+        self.csv_file = os.path.join(package_path, 'csvs', 'path_log.csv')
         self.csv_writer = None
         self.open_csv()
 
