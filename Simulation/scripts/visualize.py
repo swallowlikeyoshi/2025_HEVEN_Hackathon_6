@@ -150,30 +150,46 @@ def ParkinglotMarker():
     
 def MakeParkinglotMarker(map_number):
     if map_number == 1:
-        tilt_degree = param.PARKING_LOT_TILT_DEGREE * pi / 180
-        qu_x, qu_y, qu_z, qu_w = quaternion_from_euler(0,0,tilt_degree)
+        tilt_degree_1 = param.PARKING_LOT_TILT_DEGREE_1 * pi / 180
+        tilt_degree_2 = param.PARKING_LOT_TILT_DEGREE_2 * pi / 180
+        tilt_degree_3 = param.PARKING_LOT_TILT_DEGREE_3 * pi / 180
+        
+        
+        qu_x1, qu_y1, qu_z1, qu_w1 = quaternion_from_euler(0,0,tilt_degree_1)
+        qu_x2, qu_y2, qu_z2, qu_w2 = quaternion_from_euler(0,0,tilt_degree_2)
+        qu_x3, qu_y3, qu_z3, qu_w3 = quaternion_from_euler(0,0,tilt_degree_3)
 
         parking_lot_1 = ParkinglotMarker()
         parking_lot_1.header.frame_id = "map"
         parking_lot_1.ns = "lot_1"
         parking_lot_1.pose.position.x = param.MAP_1_PARKING_LOT_X_1
         parking_lot_1.pose.position.y = param.MAP_1_PARKING_LOT_Y_1
-        parking_lot_1.pose.orientation.x = qu_x
-        parking_lot_1.pose.orientation.y = qu_y
-        parking_lot_1.pose.orientation.z = qu_z
-        parking_lot_1.pose.orientation.w = qu_w
+        parking_lot_1.pose.orientation.x = qu_x1
+        parking_lot_1.pose.orientation.y = qu_y1
+        parking_lot_1.pose.orientation.z = qu_z1
+        parking_lot_1.pose.orientation.w = qu_w1
 
         parking_lot_2 = ParkinglotMarker()
         parking_lot_2.header.frame_id = "map"
         parking_lot_2.ns = "lot_2"
         parking_lot_2.pose.position.x = param.MAP_1_PARKING_LOT_X_2
         parking_lot_2.pose.position.y = param.MAP_1_PARKING_LOT_Y_2
-        parking_lot_2.pose.orientation.x = qu_x
-        parking_lot_2.pose.orientation.y = qu_y
-        parking_lot_2.pose.orientation.z = qu_z
-        parking_lot_2.pose.orientation.w = qu_w
+        parking_lot_2.pose.orientation.x = qu_x2
+        parking_lot_2.pose.orientation.y = qu_y2
+        parking_lot_2.pose.orientation.z = qu_z2
+        parking_lot_2.pose.orientation.w = qu_w2
+        
+        parking_lot_3 = ParkinglotMarker()
+        parking_lot_3.header.frame_id = "map"
+        parking_lot_3.ns = "lot_3"
+        parking_lot_3.pose.position.x = param.MAP_1_PARKING_LOT_X_3
+        parking_lot_3.pose.position.y = param.MAP_1_PARKING_LOT_Y_3
+        parking_lot_3.pose.orientation.x = qu_x3
+        parking_lot_3.pose.orientation.y = qu_y3
+        parking_lot_3.pose.orientation.z = qu_z3
+        parking_lot_3.pose.orientation.w = qu_w3
 
-        return parking_lot_1, parking_lot_2
+        return parking_lot_1, parking_lot_2, parking_lot_3
 
     else:
         return None
