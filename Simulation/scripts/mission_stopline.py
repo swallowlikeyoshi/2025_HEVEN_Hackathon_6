@@ -36,7 +36,7 @@ class StopLineMission(Mission):
 
     def main(self, goal=Goal, car=Carstatus):
         traffic_msg = Traffic()
-        if self.num_success_stop[goal.number - 1] == 1:
+        if self.stop_index == 3:
             # Already Succeed
             rospy.loginfo("Finished Stop line. Go ahead.")
             traffic_msg.traffic = goal.traffic
@@ -60,21 +60,25 @@ class StopLineMission(Mission):
 
                     elapsed = time.time() - self.stop_time
 
-                    if elapsed < self.stop_duration:
-                        # 아직 빨간불 유지 구간
-                        traffic_msg.traffic = "STOP"
-                        traffic_msg.second = max(self.stop_duration - elapsed, 0.0)
-                        self.traffic.publish(traffic_msg)
-                        return
-                    else:
-                        # 빨간불 대기시간이 끝난 순간
-                        # → STOP + 0 을 한 번 보내고, 다음 state로 넘김
-                        traffic_msg.traffic = "STOP"
-                        traffic_msg.second = 0.0
-                        self.traffic.publish(traffic_msg)
+                    self.stop_index = 1
 
-                        self.stop_index = 1   # 이후 단계(성공/실패 판정용)로 이동
-                        return
+                    return
+
+                    # if elapsed < self.stop_duration:
+                    #     # 아직 빨간불 유지 구간
+                    #     traffic_msg.traffic = "STOP"
+                    #     traffic_msg.second = max(self.stop_duration - elapsed, 0.0)
+                    #     self.traffic.publish(traffic_msg)
+                    #     return
+                    # else:
+                    #     # 빨간불 대기시간이 끝난 순간
+                    #     # → STOP + 0 을 한 번 보내고, 다음 state로 넘김
+                    #     traffic_msg.traffic = "STOP"
+                    #     traffic_msg.second = 0.0
+                    #     self.traffic.publish(traffic_msg)
+
+                    #     self.stop_index = 1   # 이후 단계(성공/실패 판정용)로 이동
+                    #     return
 
                 else:
                     # 아직 정지선 구간에 안 들어왔으면 초기화
@@ -94,7 +98,7 @@ class StopLineMission(Mission):
                     self.stop_flag = 1
                     self.stop_index += 1
 
-                elif elapsed < self.stop_duration and abs(car.speed) > 0.00001:
+                elif 2.0 < elapsed < self.stop_duration and abs(car.speed) > 0.00001:
                     # Stop fail
                     rospy.loginfo("Stop mission failed...")
                     self.stop_flag = 0
@@ -107,16 +111,16 @@ class StopLineMission(Mission):
                 traffic_msg.second = max(self.stop_duration - elapsed, 0.0)
                 self.traffic.publish(traffic_msg)
 
-            elif self.stop_index == 2:
-                # stop mission failed, break the function
-                if self.stop_flag == 0:
-                    self.stop_index = 0
+            # elif self.stop_index == 2:
+            #     # stop mission failed, break the function
+            #     if self.stop_flag == 0:
+            #         self.stop_index = 0
 
-                # stop misison success
-                else:
-                    self.stop_index += 1
+            #     # stop misison success
+            #     else:
+            #         self.stop_index += 1
             
-            elif self.stop_index == 3:
+            elif self.stop_index == 2:
                 # Stop mission finally end (성공했으면, 해당 index가 1로 바뀜)
                 self.num_success_stop[goal.number - 1] += self.stop_flag
                 
@@ -126,8 +130,10 @@ class StopLineMission(Mission):
                 self.complete.publish(complete_msg)
                 
                 # Reset the trigger
-                self.stop_flag = 0
-                self.stop_index = 0
+                # self.stop_flag = 0
+                # self.stop_index = 0
+
+                self.stop_index += 1
                 
     def is_in_mission(self, goal=Goal, car=Carstatus):
         # Check if a car is in the stop line mission

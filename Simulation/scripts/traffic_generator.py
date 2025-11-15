@@ -56,10 +56,12 @@ class RandomTrafficGenerator:
 
             # 2) STOP 미션이 아닐 때는 마지막 상태 유지 (없으면 GREEN 기본)
             else:
-                if self.prev_light in ("RED", "GREEN"):
-                    traffic_msg.traffic = self.prev_light
-                else:
-                    traffic_msg.traffic = "GREEN"
+                # if self.prev_light in ("RED", "GREEN"):
+                #     traffic_msg.traffic = self.prev_light
+                # else:
+                #     traffic_msg.traffic = "GREEN"
+
+                traffic_msg.traffic = "GREEN"
 
             # 3) "STOP 구간을 최소 한 번 겪고", 바로 직전이 RED였고,
             #    지금 막 GREEN 으로 바뀐 그 순간에만 /timer_start 를 True 로 발행
