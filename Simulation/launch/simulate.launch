@@ -3,6 +3,10 @@
   <arg name="map_number" default="1"/>
   <!-- Moving obstacle speed (Hz) -->
   <arg name="obs_speed" default="300"/>
+    <!-- #########################수정함 11/14 정적장애물#############################/ -->
+    <!-- Static Obstacle Number -->
+  <arg name="map_obs_pos" default="1"/>
+    <!-- #########################수정함 11/14 정적장애물#############################/ -->
 
   <!-- Launch a map from the maps folder -->
   <arg name="map" default="$(find racecar_simulator)/maps/parkingmap.yaml"/>
@@ -36,7 +40,14 @@
   <node pkg="racecar_simulator" name="path_maker" type="pathmaker.py" output="screen"/>
 
   <!-- Obstacle generator -->
-  <node pkg="racecar_simulator" name="obstacle_maker" type="obstaclemaker.py" output="screen"/>
+  <!-- <node pkg="racecar_simulator" name="obstacle_maker" type="obstaclemaker.py" output="screen"/> -->
+  
+  <!-- #########################수정함 11/14 정적장애물#############################/ -->
+  <node pkg="racecar_simulator" name="static_obstacle_maker" type="static_obs_maker.py" output="screen">
+    <param name="map_obs_pos" value="$(arg map_obs_pos)"/>
+  </node>
+  <!-- #########################수정함 11/14 정적장애물#############################/ -->
+
   <node pkg="racecar_simulator" name="moving_obstacle_maker" type="maker_moveobs.py" output="screen">
     <param name="obs_speed" value="$(arg obs_speed)"/>
   </node>
