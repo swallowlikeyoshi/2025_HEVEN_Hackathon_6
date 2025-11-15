@@ -13,7 +13,7 @@ class Param():
         self.WHEELBASE = 0.425
         self.REAR_LIDAR = 0.325
         self.WIDTH = 0.145
-        self.SIZE_OF_TROPHY = 0.5
+        self.SIZE_OF_TROPHY = 0.45
 
         # Endpoint of Map 1
         self.END_POINT_X_1 = 33.580
@@ -33,9 +33,9 @@ class Param():
         # Center of stop line
         
         # 24_heackaton stop line location
-        self.MAP_1_STOP_LINE_X_1 = -6.0
-        self.MAP_1_STOP_LINE_Y_1 = -0.0
-        self.MAP_1_STOP_LINE_YAW_1 = 180.0 
+        self.MAP_1_STOP_LINE_X_1 = 3.0
+        self.MAP_1_STOP_LINE_Y_1 = 0.0
+        self.MAP_1_STOP_LINE_YAW_1 = 0.0 
 
         self.MAP_1_STOP_LINE_X_2 = 11.698
         self.MAP_1_STOP_LINE_Y_2 = -19.560
