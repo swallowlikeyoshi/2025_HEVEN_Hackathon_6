@@ -14,9 +14,9 @@ class ObstacleCreator:
         self.param = Param()
 
         self.point_sub = rospy.Subscriber('/clicked_point', PointStamped, self.clicked_point_callback)
-        self.grid_pub = rospy.Publisher('/map', OccupancyGrid, queue_size=10)
-
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        self.grid_pub = rospy.Publisher('/map_static', OccupancyGrid, queue_size=10)
+
 
         self.marker_array = MarkerArray()
         self.marker_id = 0

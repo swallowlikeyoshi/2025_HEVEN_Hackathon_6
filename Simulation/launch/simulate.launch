@@ -1,6 +1,8 @@
 <launch>
   <!-- Mission number (1, 2, 3) -->
   <arg name="map_number" default="1"/>
+  <!-- Moving obstacle speed (Hz) -->
+  <arg name="obs_speed" default="300"/>
 
   <!-- Launch a map from the maps folder -->
   <arg name="map" default="$(find racecar_simulator)/maps/parkingmap.yaml"/>
@@ -35,6 +37,9 @@
 
   <!-- Obstacle generator -->
   <node pkg="racecar_simulator" name="obstacle_maker" type="obstaclemaker.py" output="screen"/>
+  <node pkg="racecar_simulator" name="moving_obstacle_maker" type="maker_moveobs.py" output="screen">
+    <param name="obs_speed" value="$(arg obs_speed)"/>
+  </node>
 
   <!-- Traffic generator -->
   <node pkg="racecar_simulator" name="traffic_gen" type="traffic_generator.py" output="screen"/>
