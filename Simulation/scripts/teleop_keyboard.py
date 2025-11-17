@@ -54,8 +54,8 @@ class AckermannDriveKeyop:
         # else:
         #     max_speed = 2
         #     max_steering_angle = 0.7
-        max_speed = 2
-        max_steering_angle = 0.7
+        max_speed = 4.0
+        max_steering_angle = 0.5
         cmd_topic = 'drive'
 
         # if len(args) > 2:

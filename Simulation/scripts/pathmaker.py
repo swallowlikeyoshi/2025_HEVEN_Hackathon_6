@@ -13,7 +13,7 @@ class CSVToPath:
         rospack = rospkg.RosPack()
         package_path = rospack.get_path('racecar_simulator')
 
-        csv_file_path = os.path.join(package_path, 'csvs', 'odom_path.csv')
+        csv_file_path = os.path.join(package_path, 'csv', 'global_path.csv')
 
         self.path_pub = rospy.Publisher('/global_path', Path, queue_size=10)
 
@@ -37,11 +37,11 @@ class CSVToPath:
                 pose.header.frame_id = "map"
                 pose.pose.position.x = float(row[0])
                 pose.pose.position.y = float(row[1])
-                pose.pose.position.z = float(row[2])
-                pose.pose.orientation.x = float(row[3])
-                pose.pose.orientation.y = float(row[4])
-                pose.pose.orientation.z = float(row[5])
-                pose.pose.orientation.w = float(row[6])
+                pose.pose.position.z = 0.0
+                pose.pose.orientation.x = 0.0
+                pose.pose.orientation.y = 0.0
+                pose.pose.orientation.z = 0.0
+                pose.pose.orientation.w = 1.0
 
                 self.path.poses.append(pose)
 

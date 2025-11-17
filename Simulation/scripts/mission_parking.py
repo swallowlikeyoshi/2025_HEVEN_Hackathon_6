@@ -6,7 +6,7 @@ import time
 import math
 
 from goal import *
-from racecar_simulator.msg import Complete, ParkingInfo
+from racecar_simulator.msg import ParkingInfo
 from parameter_list import Param
 from abstract_mission import Mission, Carstatus
 
@@ -19,9 +19,6 @@ class ParkingMission(Mission):
         super().__init__()
         self.map_number = map_number
 
-        # Complete는 다시 스폰되는 장소를 업데이트할때만 사용
-        self.complete = rospy.Publisher("/complete", Complete, queue_size=1)
-        self.end_complete = rospy.Publisher("/end_complete", Complete, queue_size=1)
         # For parking
         self.parking_start_time = 0
         self.parking_index = 0
@@ -73,13 +70,6 @@ class ParkingMission(Mission):
             
                 elif self.parking_index == 3:
                     self.num_success_parking[goal.number - 1] += self.parking_flag
-                    
-                    # Spawn index (change spawn area)
-                    complete_msg = Complete()
-                    complete_msg.complete = True
-                    self.complete.publish(complete_msg)
-                    # 전체 mission end publish
-                    #self.end_complete.publish(complete_msg)
                     
                     # Reset the trigger
                     self.parking_flag = 0

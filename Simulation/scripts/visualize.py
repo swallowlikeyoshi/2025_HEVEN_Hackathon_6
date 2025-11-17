@@ -15,13 +15,19 @@ curr_traffic = "GREEN"
 def MakeGoalMarker(map_number):
     if map_number == 1:
         m = param.m
-        m.pose.position.x = param.END_POINT_X_1
-        m.pose.position.y = param.END_POINT_Y_1
-        m.pose.position.z = 0
-        m.pose.orientation.x = 0.0
-        m.pose.orientation.y = 0.0
-        m.pose.orientation.z = 0.0
-        m.pose.orientation.w = 1.0
+
+        # 차선 폭에 따라서 STOP_LINE_SIZE 튜닝 요망
+        l_point = Point()
+        l_point.x = param.END_POINT_X_1 - 0.5
+        l_point.y = param.END_POINT_Y_1 + param.STOP_LINE_SIZE / 2
+        l_point.z = 0 
+        r_point = Point()
+        r_point.x = param.END_POINT_X_1 - 0.5
+        r_point.y = param.END_POINT_Y_1 - param.STOP_LINE_SIZE / 2
+        r_point.z = 0
+
+        m.points.append(l_point)
+        m.points.append(r_point)
 
         return m
 
@@ -80,28 +86,6 @@ def MakeTrafficMarker(map_number):
         stop_sign.pose.orientation.y = 0.0
         stop_sign.pose.orientation.z = 0.0
         stop_sign.pose.orientation.w = 1.0
-
-        # traffic_stop_2 = Marker()
-        # traffic_stop_2.header.frame_id = "map"
-        # traffic_stop_2.ns = "traffic_stop_2"
-        # traffic_stop_2.type = Marker.LINE_STRIP
-        # traffic_stop_2.action = Marker.ADD
-        # traffic_stop_2.color.r, traffic_stop_2.color.g, traffic_stop_2.color.b = 1, 0, 0
-        # traffic_stop_2.color.a = 1
-        # traffic_stop_2.scale.x = 0.1
-        # traffic_stop_2.scale.y = 0.1
-        # traffic_stop_2.scale.z = 0
-        # l_point = Point()
-        # l_point.x = param.MAP_1_STOP_LINE_X_2 - param.STOP_LINE_SIZE / 2
-        # l_point.y = param.MAP_1_STOP_LINE_Y_2
-        # l_point.z = 0
-        # r_point = Point()
-        # r_point.x = param.MAP_1_STOP_LINE_X_2 + param.STOP_LINE_SIZE / 2
-        # r_point.y = param.MAP_1_STOP_LINE_Y_2
-        # r_point.z = 0
-
-        # traffic_stop_2.points.append(l_point)
-        # traffic_stop_2.points.append(r_point)
 
         stop_sign_2 = Marker()
         stop_sign_2.header.frame_id = "map"
@@ -193,6 +177,37 @@ def MakeParkinglotMarker(map_number):
 
     else:
         return None
+    
+def MakeSpawnPointMarkers(map_number):
+    if map_number == 1:
+        markers = []
+
+        for i, (x, y, yaw) in enumerate(param.MAP_1_SPAWN_POINT):
+            m = Marker()
+            m.header.frame_id = "map"
+            m.ns = "spawn_points"
+            m.id = i
+            m.type = Marker.SPHERE
+            m.action = Marker.ADD
+
+            m.scale.x = 0.2   # sphere size
+            m.scale.y = 0.2
+            m.scale.z = 0.2
+
+            m.color.r = 1.0
+            m.color.g = 1.0
+            m.color.b = 0.0
+            m.color.a = 1.0
+
+            m.pose.position.x = x
+            m.pose.position.y = y
+            m.pose.position.z = 0.1
+
+            markers.append(m)
+
+        return markers
+
+    return None
 
 def traffic_callback(data) :
     global curr_traffic
@@ -208,6 +223,7 @@ if __name__ == "__main__":
 
     goal_marker = MakeGoalMarker(map_number)
     parking_marker = MakeParkinglotMarker(map_number)
+    spawn_marker = MakeSpawnPointMarkers(map_number)
 
     while not rospy.is_shutdown():
         traffic_marker = MakeTrafficMarker(map_number)
@@ -222,6 +238,10 @@ if __name__ == "__main__":
 
         if parking_marker is not None:
             for i in parking_marker:
+                temp_list.append(i)
+
+        if spawn_marker is not None:
+            for i in spawn_marker:
                 temp_list.append(i)
 
         if len(temp_list) != 0:

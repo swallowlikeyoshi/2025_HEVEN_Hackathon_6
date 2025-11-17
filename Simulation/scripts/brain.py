@@ -2,14 +2,12 @@
 
 import rospy
 import numpy as np
-import cv2
-import time
 
 from database import Database
 from ackermann_msgs.msg import AckermannDrive
 from parameter_list import Param
-from goal import PARKING_SPOT, STOP_LINE, DELIV_PICKUP, DELIV_DROPOFF
-from std_msgs.msg import Bool
+from debug import BrainLogger
+
 
 param = Param()
 
@@ -28,29 +26,20 @@ class Brain():
 
         # 3-1. 전역 경로 (Global Path)를 받아오는 방법
         global_path = self.db.global_path 
-        [[x1, y1, yaw1(degree)], [x2, y2, yaw2], ...]
-        # 3-2. 리스폰 직후 적절한 목표 global path index를 가져오는 방법
+        [[x1, y1], [x2, y2], ...]
+        # 3-2. 리스폰 신호를 받아오는 방법
         respone = self.respone
         (True, False)
-        respone_locations = self.db.respone_locations
-        [[x1, y1], [x2, y2], ...]
-        respone_idxes = self.db.respone_idxes
-            바로 target하기 적절한 global path index
-            [처음 지역, 횡단보도 종료 후, 장애물 종료 후, S자 주행 종료 후]
 
         # 4. 현재 미션을 확인하는 방법
         curr_mission = self.db.current_mission
-        (정지선 : STOP_LINE)
-        (장애물 : OBSTACLE)
-        (S자 주행 : SCURVE)
-        (주차 : PARKING_SPOT)
+        (정지선 : STOP_LINE = 2)
+        (주차 : PARKING_SPOT = 1)
 
         # 각 미션에 필요한 데이터를 받아오는 방법
-        # 5-1. 정지선에 대한 정보를 얻어오는 방법 
-        stop_line = self.db.stop_line
-        (None, STOP)
-        remaining_time = self.db.traffic_remaining_time (남은 시간)
+        
         # 5-2. 신호등 정보를 얻어오는 방법
+        remaining_time = self.db.traffic_remaining_time (남은 시간)
         traffic_light = self.db.traffic_light
         (GREEN, RED)
 
@@ -74,11 +63,9 @@ class Brain():
         global_path = self.db.global_path
         while len(global_path) == 0:
             global_path = self.db.global_path
+            print("Waiting for global path...")
         respone = self.db.respone
-        respone_idxes = self.db.respone_idxes
-        respone_locations = self.db.respone_locations
         curr_mission = self.db.current_mission
-        stop_line = self.db.stop_line
         remaining_time = self.db.traffic_remaining_time
         traffic_light = self.db.traffic_light
         parking_info = self.db.parking_list
@@ -87,7 +74,7 @@ class Brain():
         # 아래에 코드 작성
         """
         Determine the angle & speed
-        angle(rad) : -1.8 ~ +1.8 (시계 방향-  반시계 방향+)
+        angle(rad) : -0.5 ~ +0.5 (시계 방향-  반시계 방향+)
         speed(m/s) : 0 ~ 4       (음수면 후진)     
         """
         angle = 0
@@ -112,7 +99,7 @@ if __name__ == "__main__":
     test_brain = Brain(db)
     rate = rospy.Rate(param.thread_rate)
     control_pub = rospy.Publisher('/drive', AckermannDrive, queue_size=1)
-    timer_start_pub = rospy.Publisher('/timer_start', Bool, queue_size=1)
+    logger = BrainLogger(test_brain)
 
     # brain.py 종료시 차량을 정지시키는 코드. 수정X
     rospy.on_shutdown(lambda: shutdown_handler(control_pub))
@@ -122,11 +109,9 @@ if __name__ == "__main__":
         motor_msg = AckermannDrive()
         motor_msg.steering_angle = car_angle
         motor_msg.speed = car_speed
-        motor_msg.steering_angle_velocity = param.car_angular_velocity
-        motor_msg.acceleration = param.car_acceleration
-        motor_msg.jerk = param.car_jerk
         control_pub.publish(motor_msg)
-        timer_start_msg = Bool()
-        timer_start_msg.data = True
-        timer_start_pub.publish(timer_start_msg)
+
+        # 디버깅용 로그 출력. 필요 없으면 주석 처리 가능
+        logger.log_data()
+        
         rate.sleep()

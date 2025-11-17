@@ -6,7 +6,7 @@ import tf
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import String, Bool
 from nav_msgs.msg import Path
-from racecar_simulator.msg import CenterPose, Traffic, ParkingInfoList, DropoffInfoList, PickupInfo
+from racecar_simulator.msg import CenterPose, Traffic, ParkingInfoList
 from math import *
 from goal import *
 from parameter_list import Param
@@ -52,8 +52,6 @@ class Database():
         self.global_path = []
         self.gp_sub = False
         self.respone = False
-        self.respone_idxes = [100,1884,4754,9950]
-        self.respone_locations = [(0,0), (-7.5,0), (-0.626,3.69), (-8.6,9.0)]
 
     def lidar_callback(self, data=LaserScan):
         self.lidar_data = data.ranges
@@ -77,12 +75,7 @@ class Database():
 
         elif data.data == "stop_line":
             self.current_mission = STOP_LINE
-        
-        elif data.data == "obstacle":
-            self.current_mission = OBSTACLE
 
-        elif data.data == "Scurve":
-            self.current_mission = SCURVE
         else:
             self.current_mission = 0
 
@@ -93,9 +86,7 @@ class Database():
         if self.gp_sub:
             return
         for pose in data.poses:
-            _, _, yaw = euler_from_quaternion([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
-            yaw = degrees(yaw)
-            temp = [pose.pose.position.x, pose.pose.position.y, yaw]
+            temp = [pose.pose.position.x, pose.pose.position.y]
             self.global_path.append(temp)
         self.gp_sub = True
 

@@ -39,15 +39,15 @@ class ObstacleCreator:
             ],
             2: [  # Position set 2 (Example: Move obs1_x + 1.0)
                 [self.param.MAP_1_OBS_1_x + 1.0, self.param.MAP_1_OBS_1_y],
-                [self.param.MAP_1_OBS_2_x + 1.0, self.param.MAP_1_OBS_2_y]
+                [self.param.MAP_1_OBS_2_x - 1.0, self.param.MAP_1_OBS_2_y]
             ],
             3: [  # Position set 3 (Example: Move obs1_x + 2.0, obs2_y + 1.0)
-                [self.param.MAP_1_OBS_1_x + 2.25, self.param.MAP_1_OBS_1_y],
-                [self.param.MAP_1_OBS_2_x + 2.25, self.param.MAP_1_OBS_2_y]
+                [self.param.MAP_1_OBS_1_x + 1.5, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x + 1.5, self.param.MAP_1_OBS_2_y]
             ],
             4: [  # Position set 4 (Example: Move both to new area)
-                [self.param.MAP_1_OBS_1_x + 3.5, self.param.MAP_1_OBS_1_y],
-                [self.param.MAP_1_OBS_2_x + 3.5, self.param.MAP_1_OBS_2_y]
+                [self.param.MAP_1_OBS_1_x + 2.5, self.param.MAP_1_OBS_1_y],
+                [self.param.MAP_1_OBS_2_x + 0.5, self.param.MAP_1_OBS_2_y]
             ]
         }
         # Initially set the obstacle list to the default/first position

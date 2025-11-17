@@ -10,7 +10,7 @@ import cv2
 
 # ROS messages
 from geometry_msgs.msg import Pose
-from racecar_simulator.msg import DropoffInfoList, ParkingInfoList, Complete
+from racecar_simulator.msg import ParkingInfoList
 from std_msgs.msg import String
 from random import randint
 from goal import *
@@ -18,9 +18,6 @@ from abstract_mission import Carstatus, Mission
 # Mission classes
 from mission_parking import ParkingMission
 from mission_stopline import StopLineMission
-from mission_traffic import TrafficMission
-from mission_obstacle import ObstacleMission
-from mission_scurve import ScurveMission
 # Parameter
 from parameter_list import Param
 # Type checking
@@ -56,8 +53,6 @@ class Mainmission:
         self.mission_list: Dict[int, Mission]   # 이 딕셔너리는 반드시 key = (int), value = (Mission) 형태를 가져야 함
         if self.map_number == 1:
             self.mission_list[STOP_LINE]     = StopLineMission(self.map_number)
-            self.mission_list[OBSTACLE]      = ObstacleMission(self.map_number)
-            self.mission_list[SCURVE]        = ScurveMission(self.map_number)
             self.mission_list[PARKING_SPOT]  = ParkingMission(self.map_number)
         else:
             rospy.logerr("Incorrect map_number when making a Mission class!")
@@ -69,20 +64,10 @@ class Mainmission:
         if self.map_number == 1:
             self.goal_list = [
                             Goal(mode=STOP_LINE, position=np.array((param.MAP_1_STOP_LINE_X_1, param.MAP_1_STOP_LINE_Y_1)), yaw=param.MAP_1_STOP_LINE_YAW_1, number=1, traffic=TRAFFIC_RIGHT),
-                            Goal(mode=OBSTACLE, position=np.array((param.MAP_1_OBS_1_x, param.MAP_1_OBS_1_y)), yaw=param.MAP_1_OBS_yaw),
-                            Goal(mode=SCURVE, position=np.array((param.MAP_1_STOP_LINE_X_1, param.MAP_1_STOP_LINE_Y_1)), yaw=param.MAP_1_OBS_yaw),
             ]
         else:
             rospy.logerr("Incorrect map_number when making a Goal list!")
         # bash 파일의 input number에 따라 정해진 parking number를 바탕으로 parking goal 생성
-        """
-        if param.MAP_1_PARKING_AREA == 1:
-            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_1, param.MAP_1_PARKING_LOT_Y_1)), yaw=param.MAP_1_PARKING_LOT_YAW_1, number=1))
-        elif param.MAP_1_PARKING_AREA == 2:
-            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_2, param.MAP_1_PARKING_LOT_Y_2)), yaw=param.MAP_1_PARKING_LOT_YAW_2, number=2))
-        elif param.MAP_1_PARKING_AREA == 3:
-            self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_3, param.MAP_1_PARKING_LOT_Y_3)), yaw=param.MAP_1_PARKING_LOT_YAW_3, number=3))
-        """
         if param.MAP_1_PARKING_AREA == 1: #나중에 map이 여러개 추가되면 수정필요
             #전면 주차
             self.goal_list.append(Goal(mode=PARKING_SPOT, position=np.array((param.MAP_1_PARKING_LOT_X_1, param.MAP_1_PARKING_LOT_Y_1)), yaw=param.MAP_1_PARKING_LOT_YAW_1, number=1))
@@ -95,9 +80,9 @@ class Mainmission:
         # =====================================================================================================================================================
 
         # Thread for Init button
-        button_mission_thread = threading.Thread(target=self.init_mission_button)
-        button_mission_thread.daemon = True
-        button_mission_thread.start()
+        # button_mission_thread = threading.Thread(target=self.init_mission_button)
+        # button_mission_thread.daemon = True
+        # button_mission_thread.start()
 
     # Main loop
     ##########################################################################################################
@@ -135,24 +120,6 @@ class Mainmission:
                     self.mission_pub.publish("stop_line")
                     self.mission_list[STOP_LINE].main(goal, self.car)
                     self.num_stop_line += 1
-
-                    self.num_in_missions += 1
-            
-            # 2. 장애물
-            # 장애물 미션 구간을 그냥 완주만하면 mission 성공으로 간주
-            elif goal.mode == OBSTACLE:
-                if self.mission_list[OBSTACLE].is_in_mission(goal, self.car):
-                    self.mission_pub.publish("obstacle")
-                    self.mission_list[OBSTACLE].main(goal, self.car)
-
-                    self.num_in_missions += 1
-
-            # 3. S curve
-            # 마찬가지로 해당 구간 완주만하면 mission 성공으로 간주
-            elif goal.mode == SCURVE:
-                if self.mission_list[SCURVE].is_in_mission(goal, self.car):
-                    self.mission_pub.publish("Scurve")
-                    self.mission_list[SCURVE].main(goal, self.car)
 
                     self.num_in_missions += 1
 
@@ -217,12 +184,6 @@ class Mainmission:
         for mission in self.mission_list.values():
             mission.init_values()
 
-        # spawn index 초기화
-        complete = rospy.Publisher("/complete", Complete, queue_size=1)
-        complete_msg = Complete()
-        complete_msg.complete = False
-        complete.publish(complete_msg)
-
     def visualize_mission_state(self):
         # Show the status of missions
         img = np.full(shape=(200,400,3),fill_value=0,dtype=np.uint8)
@@ -232,27 +193,17 @@ class Mainmission:
 
             if self.mission_list[STOP_LINE].num_success_stop[0] == 1:
                 text_1 += "Success"
-
-            text_2 = "Obstacle : "
             
-            if self.mission_list[OBSTACLE].num_success_obs[0] == 1:
-                text_2 += "Success"
-
-            text_3 = "S curve : "
-            
-            if self.mission_list[SCURVE].num_success_scurve[0] == 1:
-                text_3 += "Sucess"
-            
-            text_4 = "Front Parking : "
-            text_5 = "Rear Parking : "
-            text_6 = "Parallel Parking : "
+            text_2 = "Front Parking : "
+            text_3 = "Rear Parking : "
+            text_4 = "Parallel Parking : "
 
             if self.mission_list[PARKING_SPOT].num_success_parking[0] == 1:
-                text_4 += "Success"
+                text_2 += "Success"
             if self.mission_list[PARKING_SPOT].num_success_parking[1] == 1:
-                text_5 += "Success"
+                text_3 += "Success"
             if self.mission_list[PARKING_SPOT].num_success_parking[2] == 1:
-                text_6 += "Success"
+                text_4 += "Success"
 
 
             font = cv2.FONT_HERSHEY_SIMPLEX
@@ -264,8 +215,6 @@ class Mainmission:
             cv2.putText(img, text_2, (0, initial_font_pos+font_dist*1), font, 0.7, (255, 255, 255), 2)
             cv2.putText(img, text_3, (0, initial_font_pos+font_dist*2), font, 0.7, (255, 255, 255), 2)
             cv2.putText(img, text_4, (0, initial_font_pos+font_dist*3), font, 0.7, (255, 255, 255), 2)
-            cv2.putText(img, text_5, (0, initial_font_pos+font_dist*4), font, 0.7, (255, 255, 255), 2)
-            cv2.putText(img, text_6, (0, initial_font_pos+font_dist*5), font, 0.7, (255, 255, 255), 2)
             pass
 
         cv2.imshow("mission_image",img)

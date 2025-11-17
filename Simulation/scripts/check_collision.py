@@ -11,7 +11,7 @@ import os
 from math import pi
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Pose
-from racecar_simulator.msg import CenterPose, Complete, Traffic
+from racecar_simulator.msg import CenterPose, Complete
 from parameter_list import Param
 from ackermann_msgs.msg import AckermannDrive
 from tf.transformations import quaternion_from_euler
@@ -53,51 +53,9 @@ class CheckCollide():
         # Index of Spawn list
         self.spawn_index = 0
         rospy.Subscriber('scan', LaserScan, self.callback)
-        rospy.Subscriber('stop_complete', Complete, self.stop_callback)
-        rospy.Subscriber('obs_complete', Complete, self.obs_callback)
-        rospy.Subscriber('scurve_complete', Complete, self.scurve_callback)
 
     def callback(self, data):
         self.lidar_data = np.array(data.ranges)
-    
-    def stop_callback(self, data):
-        if data.complete:
-            self.spawn_index = 1
-        else:
-            self.spawn_index = 0
-
-            # refresh time & collision
-            check_col.collision_count = 0
-            check_col.initial_clock = rospy.get_time()
-
-            # initialize spawn_index
-            check_col.spawn_index = 0
-
-    def obs_callback(self, data):
-        if data.complete:
-            self.spawn_index = 2
-        else:
-            self.spawn_index = 0
-
-            # refresh time & collision
-            check_col.collision_count = 0
-            check_col.initial_clock = rospy.get_time()
-
-            # initialize spawn_index
-            check_col.spawn_index = 0
-
-    def scurve_callback(self, data):
-        if data.complete:
-            self.spawn_index = 3
-        else:
-            self.spawn_index = 0
-
-            # refresh time & collision
-            check_col.collision_count = 0
-            check_col.initial_clock = rospy.get_time()
-
-            # initialize spawn_index
-            check_col.spawn_index = 0
 
 
 class CheckEnd():
@@ -105,14 +63,12 @@ class CheckEnd():
         self.if_end = False
         self.pose_data = None
         rospy.Subscriber('car_center', CenterPose, self.pose_callback)
-        rospy.Subscriber('end_complete', Complete, self.complete_callback)
 
     def pose_callback(self, data):
         self.pose_data = np.array(data.pose)
 
-    def complete_callback(self, data):
-        # 전체 미션이 종료되면 True로 설정
-        if data.complete:
+        end_pt = [param.END_POINT_X_1, param.END_POINT_Y_1]
+        if np.hypot(self.pose_data[0]-end_pt[0], self.pose_data[1]-end_pt[1]) < 0.5:
             self.if_end = True
         else:
             self.if_end = False
@@ -142,16 +98,6 @@ if __name__ == "__main__":
     # Spawn list
     if map_number == 1:
         spawn_list = param.MAP_1_SPAWN_POINT
-    elif map_number == 2:
-        spawn_list = param.MAP_2_SPAWN_POINT
-    elif map_number == 3:
-        spawn_list = param.MAP_3_SPAWN_POINT
-    elif map_number == 4:
-        spawn_list = param.MAP_4_SPAWN_POINT
-        rospy.loginfo("Jerk incoming!")
-    elif map_number == 5:
-        spawn_list = param.MAP_5_SPAWN_POINT
-        rospy.loginfo("Jerk incoming!")
     else:
         rospy.loginfo("Incorrect map number.")
 
@@ -168,15 +114,20 @@ if __name__ == "__main__":
                 rospy.loginfo("Collision : %d", check_col.collision_count)
 
                 # Kill main node
-                os.system("rosnode kill mission || true")
+                # os.system("rosnode kill mission || true")
                 if_terminated = True
 
-                # Stop a car
-                control_msg = AckermannDrive()
-                control_msg.speed = 0
-                control_pub.publish(control_msg)
-
             else:
+                if check_end.pose_data is not None:
+                    car_pos = check_end.pose_data
+                    next_idx = check_col.spawn_index + 1
+
+                    if next_idx < len(spawn_list):
+                        next_checkpt = spawn_list[next_idx]
+                        if np.hypot(car_pos[0]-next_checkpt[0], car_pos[1]-next_checkpt[1]) < 0.5:
+                            check_col.spawn_index = next_idx
+                            rospy.loginfo(f"Reached checkpoint {next_idx}, spawn index updated.")
+
                 # else, check collision
                 if collision_detection(check_col.lidar_data):
                     pose = Pose()
@@ -215,6 +166,16 @@ if __name__ == "__main__":
 
                 rate.sleep()
         else:
+            # Hold the car at the end point
+            end_pt = [param.END_POINT_X_1, param.END_POINT_Y_1]
+            pose = Pose()
+            pose.position.x = param.END_POINT_X_1
+            pose.position.y = param.END_POINT_Y_1
+            pose.position.z = 0
+            angle_yaw = 0.0
+            pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = quaternion_from_euler(0,0,pi*angle_yaw/180)
+            pose_pub.publish(pose)
+
             # Show mission complete message
             complete_text = "Mission Complete!"
             complete_img = np.full(shape=(150,650,3),fill_value=0,dtype=np.uint8)
