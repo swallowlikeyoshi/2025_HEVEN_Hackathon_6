@@ -22,8 +22,7 @@ class BrainLogger():
 
         # Parking
         parking_info = self.db.parking_list
-        target_park = self.db.target_park
-        rospy.loginfo(f"Parking: {parking_info}, target: {target_park}")
+        rospy.loginfo(f"Parking: {parking_info}")
 
         # Visualization
         cv2.imshow("Lidar", self.visualize_lidar(self.db.lidar_data))

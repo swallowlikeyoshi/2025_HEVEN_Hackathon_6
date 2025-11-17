@@ -38,7 +38,7 @@ class Brain():
 
         # 각 미션에 필요한 데이터를 받아오는 방법
         
-        # 5-2. 신호등 정보를 얻어오는 방법
+        # 5-1. 신호등 정보를 얻어오는 방법
         remaining_time = self.db.traffic_remaining_time (남은 시간)
         traffic_light = self.db.traffic_light
         (GREEN, RED)
@@ -50,9 +50,6 @@ class Brain():
             (y : y 방향 상대 좌표 차이)
             (yaw : 주차 공간 방향 차이)
             (num : 주차 공간의 번호)
-        # 6-2. 주차해야 하는 공간
-        target_park = self.db.target_park
-
         
         # 최종적으로 차량의 각도와 속도 결정
         return angle, speed
@@ -69,7 +66,6 @@ class Brain():
         remaining_time = self.db.traffic_remaining_time
         traffic_light = self.db.traffic_light
         parking_info = self.db.parking_list
-        target_park = self.db.target_park
         #=====================================================
         # 아래에 코드 작성
         """
