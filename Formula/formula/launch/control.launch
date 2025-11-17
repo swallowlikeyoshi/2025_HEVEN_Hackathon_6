@@ -1,0 +1,7 @@
+<launch>
+    <!-- Launch your Python node -->
+    <node name="control" pkg="formula" type="control.py" output="screen"/>
+
+    <!-- Launch RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find formula)/rviz/formula_rviz.rviz" output="screen"/>
+</launch>

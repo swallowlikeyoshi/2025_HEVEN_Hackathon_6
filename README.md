@@ -80,6 +80,6 @@ Windows 환경에서도 다음의 링크를 참고하여 편하게 개발할 수
 
 ## Formula
 ```
-rosrun formula control.py
+roslaunch formula control.launch
 ```
     
