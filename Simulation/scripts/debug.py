@@ -34,8 +34,8 @@ class BrainLogger():
         center = (200, 200)
         max_range = 10.0
         for i, d in enumerate(lidar_data):
-            if d > 0:
-                angle = np.deg2rad(i) + np.pi
+            if d > 0 :
+                angle = -np.deg2rad(i) + np.pi / 2 
                 x = int(center[0] + d / max_range * 180 * np.cos(angle))
                 y = int(center[1] + d / max_range * 180 * np.sin(angle))
                 cv2.circle(img, (x, y), 2, (0, 255, 0), -1)

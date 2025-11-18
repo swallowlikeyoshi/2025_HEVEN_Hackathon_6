@@ -160,7 +160,7 @@ class ControlNode:
         steering = 0.0
         brake = 0.0
 
-        throttle, steering, brake = self.pure_pursuit(lookahead=2.0, wheelbase=1.5, target_speed=5.0)
+        throttle, steering, brake = self.pure_pursuit(lookahead=3.0, wheelbase=1.5, target_speed=5.0)
 
 
         ###########################################################
