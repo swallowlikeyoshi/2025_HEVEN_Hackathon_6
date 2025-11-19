@@ -87,7 +87,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/timer_start', Bool, timer_starter_callback)
     pose_pub = rospy.Publisher('pose', Pose, queue_size=1)
     control_pub = rospy.Publisher('drive', AckermannDrive, queue_size=1)
-    respone_pub = rospy.Publisher('respone', Bool, queue_size=1)
+    respawn_pub = rospy.Publisher('respawn', Bool, queue_size=1)
     check_col = CheckCollide()
     check_end = CheckEnd()
     rate = rospy.Rate(param.thread_rate)
@@ -137,14 +137,14 @@ if __name__ == "__main__":
                     angle_yaw = spawn_list[check_col.spawn_index][2]
                     pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = quaternion_from_euler(0,0,pi*angle_yaw/180)
                     pose_pub.publish(pose)
-                    respone = Bool()
-                    respone.data = True
-                    respone_pub.publish(respone)
+                    respawn = Bool()
+                    respawn.data = True
+                    respawn_pub.publish(respawn)
                     check_col.collision_count += 1
                 else:
-                    respone = Bool()
-                    respone.data = False
-                    respone_pub.publish(respone)
+                    respawn = Bool()
+                    respawn.data = False
+                    respawn_pub.publish(respawn)
 
                 # Show messages
                 if timer_started:

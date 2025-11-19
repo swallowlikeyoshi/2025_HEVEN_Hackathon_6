@@ -30,8 +30,8 @@ class Database():
         rospy.Subscriber("/traffic_random", Traffic, self.traffic_light_callback)
         # GP Sub
         rospy.Subscriber("/global_path", Path, self.globalpath_callback)
-        # Respone Check
-        rospy.Subscriber("/respone", Bool, self.respone_callback)
+        # Respawn Check
+        rospy.Subscriber("/respawn", Bool, self.respawn_callback)
         # Which mission?
         self.current_mission = 0
 
@@ -51,7 +51,7 @@ class Database():
         # gp
         self.global_path = []
         self.gp_sub = False
-        self.respone = False
+        self.respawn = False
 
     def lidar_callback(self, data=LaserScan):
         self.lidar_data = data.ranges
@@ -90,8 +90,8 @@ class Database():
             self.global_path.append(temp)
         self.gp_sub = True
 
-    def respone_callback(self, data):
-        self.respone = data.data
+    def respawn_callback(self, data):
+        self.respawn = data.data
 
 if __name__ == "__main__":
     try:
