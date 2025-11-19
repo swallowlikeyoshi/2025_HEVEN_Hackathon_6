@@ -1,6 +1,9 @@
 <launch>
-    <!-- Launch your Python node -->
+    <!-- Control node -->
     <node name="control" pkg="formula" type="control.py" output="screen"/>
+
+    <!-- DNF node -->
+    <node name="dnf" pkg="formula" type="dnf.py" output="screen"/>
 
     <!-- Launch RViz -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find formula)/rviz/formula_rviz.rviz" output="screen"/>
