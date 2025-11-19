@@ -28,7 +28,7 @@ class Brain():
         global_path = self.db.global_path 
         [[x1, y1], [x2, y2], ...]
         # 3-2. 리스폰 신호를 받아오는 방법
-        respone = self.respone
+        respawn = self.db.respawn
         (True, False)
 
         # 4. 현재 미션을 확인하는 방법
@@ -61,7 +61,7 @@ class Brain():
         while len(global_path) == 0:
             global_path = self.db.global_path
             print("Waiting for global path...")
-        respone = self.db.respone
+        respawn = self.db.respawn
         curr_mission = self.db.current_mission
         remaining_time = self.db.traffic_remaining_time
         traffic_light = self.db.traffic_light
