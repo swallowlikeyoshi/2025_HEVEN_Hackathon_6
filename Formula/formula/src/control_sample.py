@@ -201,8 +201,11 @@ class ControlNode:
                 min_dist = dist
         
         dist = min_dist
-        while dist < lookahead and target_index+1 < len(self.mid_points):
-            target_index += 1
+        while dist < lookahead:
+            if target_index == len(self.mid_points)-1:
+                target_index = 0
+            else:
+                target_index += 1
             target_point = self.mid_points[target_index]
             dist = np.hypot(target_point.x-x, target_point.y-y)
 
@@ -214,17 +217,17 @@ class ControlNode:
         alpha = target_theta - theta
 
         # Pure Pursuit steering
-        steering = np.arctan2(2 * wheelbase * np.sin(alpha), lookahead)
+        steering = np.arctan2(2 * wheelbase * np.sin(alpha), dist)
         steering = min(1.0, max(-1.0, -steering))
 
         # Throttle (simple proportional controller)
-        throttle = 1.0 * (target_speed - v)
+        throttle = 0.3 * (target_speed - v)
         throttle = np.clip(throttle, 0.0, 1.0)
 
         # Optional brake if moving too fast
         brake = 0.0
         if v > target_speed + 0.1:
-            brake = np.clip(v - target_speed, 0.0, 1.0)
+            brake = np.clip(0.3 * (v - target_speed), 0.0, 1.0)
             throttle = 0.0
 
         rospy.loginfo(f"PP: x={x:.2f}, y={y:.2f}, theta={theta_deg:.2f}, v={v:.2f}, "
