@@ -58,6 +58,11 @@ CORNER_STIFFNESS = 1.0     # 코너 감속 민감�
 K_ACCEL = 0.6              # 가속 P 게인
 K_BRAKE = 0.4              # 브레이크 P 게인
 
+# [NEW Step 3] 예측형 속도 제어 관련
+PREDICT_STEPS = 8          # 몇 개의 점 앞까지 미리 내다볼 것인가 (경로 탐색 범위)
+CURVATURE_THRESHOLD = 0.15 # 이 값보다 곡률이 크면 급커브로 인식
+BRAKE_LOOKAHEAD = 1.2      # 곡률 기반 감속 강도 (클수록 코너 앞에서 더 강하게 브레이크)
+
 # ==============================================================================
 
 def cone_color(cone_type):
@@ -353,44 +358,71 @@ class ControlNode:
             rospy.logwarn(f"Spline smoothing failed: {e}")
 
     def pure_pursuit(self, lookahead=None, wheelbase=None, target_speed=None):
-        """
-        상수(CONSTANTS)를 적용한 Pure Pursuit
-        """
         x, y, theta_deg, v = self.state
         
-        if not self.mid_points:
+        if not self.mid_points or len(self.mid_points) < 3:
             return 0.0, 0.0, 1.0 
 
-        # [상수 적용] Adaptive Lookahead
+        # 1. Adaptive Lookahead
         adaptive_lookahead = LOOKAHEAD_MIN + (LOOKAHEAD_GAIN * v)
 
-        # 최적 목표점 탐색
+        # 2. 목표점 탐색
         dists = [np.hypot(pt.x - x, pt.y - y) for pt in self.mid_points]
         min_dist_idx = np.argmin(dists)
         
-        target_point = self.mid_points[min_dist_idx]
+        target_index = min_dist_idx
         for i in range(min_dist_idx, len(self.mid_points)):
             if dists[i] > adaptive_lookahead:
-                target_point = self.mid_points[i]
+                target_index = i
                 break
         
-        # 조향각 계산
+        target_point = self.mid_points[target_index]
+
+        # 3. [NEW] 미래 경로 곡률 스캔 (Predictive Check)
+        # 현재 목표점부터 미래의 몇 단계(PREDICT_STEPS) 앞까지 곡률을 미리 검사
+        max_curvature = 0.0
+        
+        start_scan = target_index
+        end_scan = min(len(self.mid_points) - 1, start_scan + PREDICT_STEPS)
+
+        # 3개의 점씩 묶어서 곡률 계산
+        for i in range(start_scan, end_scan - 2):
+            p1 = self.mid_points[i]
+            p2 = self.mid_points[i+1]
+            p3 = self.mid_points[i+2]
+            
+            k = self.calculate_path_curvature(p1, p2, p3)
+            if k > max_curvature:
+                max_curvature = k
+
+        # 4. 조향각(Steering) 계산
         target_dx = target_point.x - x
         target_dy = target_point.y - y
         target_theta = np.arctan2(target_dy, target_dx)
         theta_rad = np.radians(theta_deg)
         alpha = (target_theta - theta_rad + np.pi) % (2 * np.pi) - np.pi
 
-        # [상수 적용] Wheelbase
         steering = np.arctan2(2 * WHEELBASE * np.sin(alpha), adaptive_lookahead)
         steering = np.clip(steering, -1.0, 1.0)
 
-        # [상수 적용] Dynamic Speed Profile
-        # abs(steering)에 제곱 등을 적용해 민감도 조절 가능
-        target_v = MAX_SPEED - (MAX_SPEED - MIN_SPEED) * (abs(steering) ** CORNER_STIFFNESS)
+        # 5. [NEW] 곡률 기반 목표 속도 설정
+        # 곡률이 클수록(급커브) 목표 속도를 낮춤. steering 값도 함께 고려.
+        
+        # 기본적으로 현재 조향각에 따라 감속
+        curvature_speed = MAX_SPEED - (MAX_SPEED - MIN_SPEED) * (abs(steering) ** CORNER_STIFFNESS)
+        
+        # 미래의 급커브가 감지되면 강력하게 미리 감속
+        if max_curvature > CURVATURE_THRESHOLD:
+            # 예측된 커브가 심할수록 속도를 더 많이 줄임
+            predicted_speed = MAX_SPEED / (1.0 + BRAKE_LOOKAHEAD * max_curvature)
+            # 현재 조향 기반 속도와 예측 속도 중 더 낮은(안전한) 속도 선택
+            target_v = min(curvature_speed, predicted_speed, max(MIN_SPEED, predicted_speed))
+        else:
+            target_v = curvature_speed
+
         target_v = max(MIN_SPEED, target_v)
 
-        # [상수 적용] PID Control
+        # 6. PID Control (Throttle/Brake)
         throttle = 0.0
         brake = 0.0
         speed_error = target_v - v
@@ -398,14 +430,46 @@ class ControlNode:
         if speed_error > 0:
             throttle = np.clip(K_ACCEL * speed_error, 0.0, 1.0)
         else:
+            # 감속이 필요할 때
             if speed_error < -0.5:
-                brake = np.clip(K_BRAKE * abs(speed_error), 0.0, 0.5)
+                brake = np.clip(K_BRAKE * abs(speed_error), 0.0, 0.8)
                 throttle = 0.0
 
-        # [NEW] 디버깅: 목표 지점 시각화 호출
+        # 디버깅용 시각화 (초록공)
         self.publish_target_marker(target_point)
 
+        # (선택) 디버깅 로그: 현재 곡률과 목표 속도 확인
+        # rospy.loginfo(f"Curvature: {max_curvature:.3f} | Target V: {target_v:.2f}")
+
         return throttle, steering, brake
+        
+    def calculate_path_curvature(self, p1, p2, p3):
+        """
+        세 점 (p1, p2, p3)을 지나는 외접원의 곡률(1/R)을 계산 (Menger Curvature)
+        리턴값이 클수록 급커브
+        """
+        # 삼각형의 넓이 공식을 이용
+        x1, y1 = p1.x, p1.y
+        x2, y2 = p2.x, p2.y
+        x3, y3 = p3.x, p3.y
+
+        # 세 변의 길이
+        a = np.hypot(x1 - x2, y1 - y2)
+        b = np.hypot(x2 - x3, y2 - y3)
+        c = np.hypot(x3 - x1, y3 - y1)
+
+        # 0으로 나누기 방지
+        if (a * b * c) == 0:
+            return 0.0
+
+        # 헤론의 공식으로 삼각형 넓이(Area) 계산
+        s = (a + b + c) / 2.0
+        area = np.sqrt(abs(s * (s - a) * (s - b) * (s - c)))
+
+        # 외접원 반경 R = (abc) / (4 * Area)
+        # 곡률 k = 1 / R = (4 * Area) / (abc)
+        curvature = (4 * area) / (a * b * c)
+        return curvature
 
 def main():
     rospy.init_node("control_node")
