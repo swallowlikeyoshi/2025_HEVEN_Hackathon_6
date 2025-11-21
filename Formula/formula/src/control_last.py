@@ -38,6 +38,7 @@ from geometry_msgs.msg import PoseStamped, Point, TwistWithCovarianceStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 import tf
+from scipy.spatial.distance import cdist
 
 # ==============================================================================
 # [TUNING] 하이퍼파라미터 (여기서 값을 바꾸면 전체 로직에 적용됩니다)
@@ -273,7 +274,7 @@ class ControlNode:
         self.yellow_cones = []
         for cone in msg.track:
             if cone.color == Cone.BLUE:
-                self.blue_cones.append(cone)
+                self.blue_cones.append(cone) # x, y, z
             elif cone.color == Cone.YELLOW:
                 self.yellow_cones.append(cone)
 
@@ -281,9 +282,9 @@ class ControlNode:
         self.calculate_midpoints_robust()
         
         # 2. 경로 스무딩 적용 (Step 2 - NEW!)
-        self.smooth_path()
+        # self.smooth_path()
 
-        # rospy.loginfo(f"Path points: {len(self.mid_points)}")
+        rospy.loginfo(f"Path points: {len(self.mid_points)}")
 
     # ... (기존 import 문 아래에 추가하거나 클래스 내 메서드로 추가)
 
@@ -334,36 +335,94 @@ class ControlNode:
             
         return sorted_points
 
-    def calculate_midpoints_robust(self):
-        self.mid_points = []
-        if not self.blue_cones or not self.yellow_cones:
+    # def calculate_midpoints_robust(self):
+    #     self.mid_points = []
+    #     if not self.blue_cones or not self.yellow_cones:
+    #         return
+
+    #     # 1. 매칭 (기존 로직 유지)
+    #     temp_points = []
+    #     for bc in self.blue_cones:
+    #         min_dist = float('inf')
+    #         closest_yc = None
+
+    #         for yc in self.yellow_cones:
+    #             dist = np.hypot(bc.location.x - yc.location.x, bc.location.y - yc.location.y)
+    #             if dist < min_dist:
+    #                 min_dist = dist
+    #                 closest_yc = yc
+            
+    #         # 매칭 거리가 너무 멀면(반대편 콘 매칭 방지) 제외
+    #         if closest_yc is not None and min_dist < TRACK_MATCH_DIST:
+    #             mid = Point()
+    #             mid.x = (bc.location.x + closest_yc.location.x) / 2.0
+    #             mid.y = (bc.location.y + closest_yc.location.y) / 2.0
+    #             mid.z = (bc.location.z + closest_yc.location.z) / 2.0
+    #             temp_points.append(mid)
+
+    #     # 2. [수정됨] 정렬 로직 교체
+    #     # 기존: self.mid_points.sort(key=lambda p: np.hypot(p.x - x, p.y - y))  <-- 삭제
+        
+    #     # 신규: 이어달리기 방식 정렬 적용
+    #     self.mid_points = self.sort_points_greedy(temp_points)
+    
+
+
+    def calculate_path_independent(self):
+        # 1. 데이터 준비
+        bp = [(c.location.x, c.location.y) for c in self.blue_cones]
+        yp = [(c.location.x, c.location.y) for c in self.yellow_cones]
+        
+        # 콘이 너무 적으면 계산 불가
+        if len(bp) < 2 or len(yp) < 2:
+            self.mid_points = []
             return
 
-        # 1. 매칭 (기존 로직 유지)
-        temp_points = []
-        for bc in self.blue_cones:
-            min_dist = float('inf')
-            closest_yc = None
+        # 2. 내부 함수: 독립적인 정렬 (Nearest Neighbor)
+        def sort_independent(pts, start_pos):
+            p = list(pts)
+            s = []
+            c = np.array([start_pos]) # 시작점 (차량 위치)
+            while p:
+                # 현재 기준점(c)에서 가장 가까운 점 찾기
+                idx = np.argmin(cdist(c.reshape(1,2), np.array(p)))
+                c = np.array(p.pop(idx))
+                s.append(c)
+            return np.array(s)
 
-            for yc in self.yellow_cones:
-                dist = np.hypot(bc.location.x - yc.location.x, bc.location.y - yc.location.y)
-                if dist < min_dist:
-                    min_dist = dist
-                    closest_yc = yc
-            
-            # 매칭 거리가 너무 멀면(반대편 콘 매칭 방지) 제외
-            if closest_yc is not None and min_dist < TRACK_MATCH_DIST:
-                mid = Point()
-                mid.x = (bc.location.x + closest_yc.location.x) / 2.0
-                mid.y = (bc.location.y + closest_yc.location.y) / 2.0
-                mid.z = (bc.location.z + closest_yc.location.z) / 2.0
-                temp_points.append(mid)
-
-        # 2. [수정됨] 정렬 로직 교체
-        # 기존: self.mid_points.sort(key=lambda p: np.hypot(p.x - x, p.y - y))  <-- 삭제
+        car_pos = [self.location.x, self.location.y]
         
-        # 신규: 이어달리기 방식 정렬 적용
-        self.mid_points = self.sort_points_greedy(temp_points)
+        # 3. 각각 정렬 (매칭 과정 없음!)
+        b_sorted = sort_independent(bp, car_pos)
+        y_sorted = sort_independent(yp, car_pos)
+
+        try:
+            # 4. 각각 스플라인 생성 (점들을 잇는 부드러운 곡선 생성)
+            # k=1 (직선) 또는 k=3 (곡선), 콘 개수에 맞춰 조정
+            k_val = min(3, len(b_sorted)-1, len(y_sorted)-1)
+            
+            tck_b, _ = splprep(b_sorted.T, k=k_val, s=0)
+            tck_y, _ = splprep(y_sorted.T, k=k_val, s=0)
+
+            # 5. 같은 비율(0~100%) 지점의 좌표를 추출하여 중점 계산
+            # 이렇게 해야 짝이 안 맞아도 '경로 상의 같은 위치'끼리 평균을 낼 수 있음
+            u = np.linspace(0, 1, 50) # 50개의 점 생성
+            bx, by = splev(u, tck_b)
+            yx, yy = splev(u, tck_y)
+
+            mid_x = (bx + yx) / 2
+            mid_y = (by + yy) / 2
+
+            # 6. 결과 저장 (Point 객체로 변환)
+            self.mid_points = []
+            for i in range(len(mid_x)):
+                p = Point()
+                p.x, p.y = mid_x[i], mid_y[i]
+                self.mid_points.append(p)
+
+        except Exception as e:
+            print(f"Spline error: {e}")
+            self.mid_points = []
 
     def smooth_path(self):
         """
