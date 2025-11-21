@@ -17,15 +17,15 @@
 * 윈도우 검색창에서 "Windows Powershell"을 검색하여 실행
 * 터미널 창에 다음을 입력
 ```
-docker run -p 6080:80 -e RESOLUTION=1920x1080 --shm-size=512m p0pular/2024_hackathon:latest
+docker run -p 6080:80 -e RESOLUTION=1920x1080 --shm-size=512m jungejblue/2025_hackathon
 ```
-![image](./assets/shell_.png)
+![image](./assets/docker_1.png)
 
 자동으로 Dockerhub에서 image를 받아 와서 실행함(약 10분 소요).
 
 * 윈도우 검색창에서 "Docker Desktop"을 검색하여 실행
 
-![image](./assets/docker_.png)
+![image](./assets/docker_2.png)
 
 좌측의 "Containers" 버튼 클릭 후, 우측의 "Actions"에 네모 버튼으로 되어있는지 확인 (네모 버튼이어야 도커 컨테이너가 잘 실행중이라는 의미)
 
@@ -39,7 +39,7 @@ http://127.0.0.1:6080/
 ```
 
 개발 환경이 설치된 Ubuntu OS를 웹 브라우저에서 이용 가능
-![image](./assets/vnc_.png)
+![image](./assets/docker_3.png)
 
 #### 4. Visual Studio Code 설치 및 Extension 깔기
 
@@ -72,13 +72,13 @@ http://127.0.0.1:6080/
 
 2. Dev Containers에서 dorowu/ubuntu-desktop-lxde-vnc:focal 옆 화살표를 누름.
 
-    ![image](./assets/vscode_1.png)
+    ![image](./assets/docker_4.png)
 
 3. root/ 폴더로 들어가면 해커톤 시뮬레이터 디스크 내에 있는 모든 폴더에 접근할 수 있음
 
-    그 중에서, `catkin_ws/src/HEVEN_hackton/Simulation/scripts/brain.py` 를 수정하면 됨.
+    그 중에서, `catkin_ws/src/2025_HEVEN_Hackthon/Simulation/scripts/brain.py` 를 수정하면 됨.
   
-    ![image](./assets/vscode_2.png)
+    ![image](./assets/docker_5.png)
 
 #### 5. 특이사항  
 - 인터넷은 chrome 대신 firefox 사용할 것
