@@ -11,18 +11,21 @@ class MockFSDSSimulator:
     def __init__(self):
         rospy.init_node('mock_fsds_simulator')
 
-        # ===========================
-        # 1. 가상 트랙 생성 (타원형)
-        # ===========================
+        # ======================================================================
+        # 1. 가상 트랙 생성 (정밀한 간격의 타원형)
+        # ======================================================================
         self.track_msg = Track()
         self.generate_oval_track()
 
-        # ===========================
+        # ======================================================================
         # 2. 차량 상태 초기화
-        # ===========================
-        self.x = 0.0
+        # ======================================================================
+        # 타원 트랙의 동쪽 끝(시작점)에서 북쪽(+y)을 보고 시작
+        self.x = 0.0 
         self.y = 0.0
         self.yaw = 0.0
+        self.reset_vehicle_position()
+
         self.v = 0.0
         self.wheelbase = 1.55
 
@@ -31,9 +34,9 @@ class MockFSDSSimulator:
         self.cmd_brake = 0.0
         self.cmd_steering = 0.0
 
-        # ===========================
+        # ======================================================================
         # 3. ROS 통신 설정
-        # ===========================
+        # ======================================================================
         # Publisher
         self.pub_track = rospy.Publisher("/fsds/testing_only/track", Track, queue_size=1, latch=True)
         self.pub_odom = rospy.Publisher("/fsds/testing_only/odom", Odometry, queue_size=10)
@@ -46,34 +49,73 @@ class MockFSDSSimulator:
         # 주기적 실행 (50Hz)
         self.rate = rospy.Rate(50)
 
-    def generate_oval_track(self):
-        """간단한 타원형 트랙 생성"""
-        center_x, center_y = 20.0, 10.0
-        a, b = 25.0, 15.0  # 장축, 단축 반경
-        track_width = 4.0
+    def reset_vehicle_position(self):
+        # generate_oval_track 실행 후 호출되어 정확한 위치를 잡음
+        # 기본값은 원점이지만, 트랙 생성 함수에서 덮어씌워짐
+        pass
 
-        num_cones = 60
-        for i in range(num_cones):
-            theta = 2 * np.pi * i / num_cones
+    def generate_oval_track(self):
+        """
+        타원형 트랙 생성
+        - 특징: 곡률에 상관없이 콘 간격을 일정하게(약 3.5m) 유지함
+        """
+        center_x, center_y = 20.0, 10.0
+        a, b = 25.0, 15.0  # 장축(25m), 단축(15m)
+        track_width = 4.0
+        
+        # [설정] 콘과 콘 사이의 목표 거리 (단위: m)
+        cone_spacing = 3.5 
+
+        curr_theta = 0.0
+        
+        # 한 바퀴(2pi) 돌 때까지 반복
+        while curr_theta < 2 * np.pi:
+            # 1. 현재 각도(theta)에서의 중심선 좌표 (x, y)
+            cx = center_x + a * np.cos(curr_theta)
+            cy = center_y + b * np.sin(curr_theta)
             
-            # Blue Cones (Inner)
+            # 2. 법선 벡터(Normal Vector) 계산 -> 트랙 폭만큼 벌리기 위해
+            # 타원 접선 벡터: (-a*sin, b*cos)
+            # 타원 법선 벡터(수직, 바깥쪽): (b*cos, a*sin)
+            nx = b * np.cos(curr_theta)
+            ny = a * np.sin(curr_theta)
+            
+            # 단위 벡터로 정규화
+            n_len = np.hypot(nx, ny)
+            nx /= n_len
+            ny /= n_len
+
+            # 3. 콘 생성 (Blue는 안쪽, Yellow는 바깥쪽)
+            # FSDS 기준: 진행방향 왼쪽=Blue, 오른쪽=Yellow
+            # 반시계 방향(CCW) 주행 시 안쪽이 Blue
+            
+            # Blue Cone (Inner) - 법선 반대 방향
             bc = Cone()
-            bc.location.x = center_x + (a - track_width/2) * np.cos(theta)
-            bc.location.y = center_y + (b - track_width/2) * np.sin(theta)
+            bc.location.x = cx - (nx * track_width / 2.0)
+            bc.location.y = cy - (ny * track_width / 2.0)
             bc.color = Cone.BLUE
             self.track_msg.track.append(bc)
 
-            # Yellow Cones (Outer)
+            # Yellow Cone (Outer) - 법선 방향
             yc = Cone()
-            yc.location.x = center_x + (a + track_width/2) * np.cos(theta)
-            yc.location.y = center_y + (b + track_width/2) * np.sin(theta)
+            yc.location.x = cx + (nx * track_width / 2.0)
+            yc.location.y = cy + (ny * track_width / 2.0)
             yc.color = Cone.YELLOW
             self.track_msg.track.append(yc)
 
-        # 차량 시작 위치를 트랙 중간으로 설정
+            # 4. 다음 콘을 찍을 각도(delta_theta) 계산 (미분 이용)
+            # 호의 길이 공식: ds = sqrt((dx/dt)^2 + (dy/dt)^2) * dt
+            # 따라서 dt(각도변화량) = 목표거리 / sqrt(...)
+            ds_dt = np.sqrt((a * np.sin(curr_theta))**2 + (b * np.cos(curr_theta))**2)
+            
+            delta_theta = cone_spacing / ds_dt
+            curr_theta += delta_theta
+
+        # 차량 시작 위치 설정 (트랙 동쪽 끝에서 +y방향을 보고 시작)
         self.x = center_x + a
         self.y = center_y
-        self.yaw = np.pi / 2  # +y 방향 보고 시작
+        self.yaw = np.pi / 2 
+        rospy.loginfo(f"Track Generated. Start Pose: ({self.x:.1f}, {self.y:.1f})")
 
     def cmd_callback(self, msg):
         self.cmd_throttle = msg.throttle
@@ -81,26 +123,29 @@ class MockFSDSSimulator:
         self.cmd_steering = msg.steering
 
     def update_physics(self, dt):
-        """간이 차량 물리 모델 (Kinematic Bicycle Model)"""
-        # 가속도 모델 (단순화: Throttle * 5.0 m/s^2, Brake * 8.0 m/s^2)
+        """
+        간이 차량 물리 모델 (Kinematic Bicycle Model)
+        주의: 실제 물리 엔진(마찰력, 관성 등)은 포함되지 않았습니다.
+        알고리즘 논리 검증용으로만 사용하세요.
+        """
+        # 가속도 모델 (단순화)
         accel = self.cmd_throttle * 5.0 - self.cmd_brake * 8.0
         
-        # 공기 저항 및 마찰 (속도에 비례해서 감속)
+        # 공기 저항 및 마찰
         drag = 0.1 * self.v 
         accel -= drag
 
         # 속도 업데이트
         self.v += accel * dt
-        if self.v < 0: self.v = 0  # 후진 불가 가정
+        if self.v < 0: self.v = 0 
 
-        # 위치 업데이트
-        # x_dot = v * cos(yaw)
-        # y_dot = v * sin(yaw)
-        # yaw_dot = (v / L) * tan(steering)
+        # 위치 업데이트 (Bicycle Model)
+        # 조향각 제한을 두면 더 현실적일 수 있음 (옵션)
+        steering_angle = np.clip(self.cmd_steering, -1.0, 1.0) # 라디안 가정 시 약 57도 (FSDS 맥스)
         
         self.x += self.v * np.cos(self.yaw) * dt
         self.y += self.v * np.sin(self.yaw) * dt
-        self.yaw += (self.v / self.wheelbase) * np.tan(self.cmd_steering) * dt
+        self.yaw += (self.v / self.wheelbase) * np.tan(steering_angle) * dt
 
     def publish_state(self):
         current_time = rospy.Time.now()
@@ -138,11 +183,12 @@ class MockFSDSSimulator:
         gss.twist.twist.linear.x = self.v
         self.pub_gss.publish(gss)
 
-        # 4. Track Msg (주기적으로 발행)
+        # 4. Track Msg (주기적으로 발행, Latch되어 있으므로 1번만 가도 됨)
         self.pub_track.publish(self.track_msg)
 
     def run(self):
         last_time = rospy.Time.now()
+        rospy.loginfo("Mock Simulator Started. Waiting for control commands...")
         
         while not rospy.is_shutdown():
             current_time = rospy.Time.now()
