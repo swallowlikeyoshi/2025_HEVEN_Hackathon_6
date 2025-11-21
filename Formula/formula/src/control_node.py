@@ -152,12 +152,36 @@ class ControlNode:
     # [FIX] Path Planning: Matching Algorithm
     # --------------------------------------------------------------------------
     def calculate_path_independent(self):
-        """
-        기존 함수 이름을 유지하되, 내부는 'Matching' 알고리즘으로 변경합니다.
-        독립적 스플라인 방식의 '경로 꼬임' 문제를 해결합니다.
-        """
-        bp = [(c.location.x, c.location.y) for c in self.blue_cones]
-        yp = [(c.location.x, c.location.y) for c in self.yellow_cones]
+        # 1. [NEW] 차량 상태 가져오기 (필터링용)
+        cx = self.state[0]
+        cy = self.state[1]
+        cyaw = np.radians(self.state[2]) # degree to radian
+
+        # 2. [NEW] 로컬 좌표계 변환 및 후방 콘 필터링 함수
+        def filter_rear_cones(cones, margin=-2.0):
+            """
+            margin: 차량 기준 뒤쪽 몇 미터까지 살려둘 것인가? 
+                    (예: -2.0이면 내 뒤 2m까진 포함, 그보다 뒤는 삭제)
+            """
+            filtered = []
+            for c in cones:
+                dx = c.location.x - cx
+                dy = c.location.y - cy
+                
+                # 회전 행렬로 Local X (차량 앞뒤 거리) 계산
+                local_x = dx * np.cos(-cyaw) - dy * np.sin(-cyaw)
+                
+                if local_x > margin:
+                    filtered.append(c)
+            return filtered
+
+        # 3. [NEW] 필터링 적용 (이 리스트로 경로 생성 시작)
+        valid_blue = filter_rear_cones(self.blue_cones)
+        valid_yellow = filter_rear_cones(self.yellow_cones)
+
+        # (기존 로직에서 변수명만 변경: self.blue_cones -> valid_blue)
+        bp = [(c.location.x, c.location.y) for c in valid_blue]
+        yp = [(c.location.x, c.location.y) for c in valid_yellow]
 
         if len(bp) < 2 or len(yp) < 2:
             self.mid_points = []
