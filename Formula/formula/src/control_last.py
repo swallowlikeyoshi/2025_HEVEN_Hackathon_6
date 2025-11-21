@@ -17,9 +17,9 @@ import tf
 # 2.1 B-Spline 보간법 적용
 # 3. 경로 시각화
 #
-# 3. 속도 프로파일링: 직선에서는 빠르게, 코너에서는 느리게. 경로의 곡률 기반. 코너 진입 전에 미리 감속해야만 함!
-# 4. Adaptive Lookahead: 속도가 빠를수록 더 먼 지점을 바라보도록 조정. 혹은 스탠리 메소드 활용.
-# 5. 파일런 기억 및 활용: 이전 프레임의 파일런 정보를 저장하고, 현재 프레임의 파일런 감지에 활용.
+# 4. 속도 프로파일링: 직선에서는 빠르게, 코너에서는 느리게. 경로의 곡률 기반. 코너 진입 전에 미리 감속해야만 함!
+# 5. Adaptive Lookahead: 속도가 빠를수록 더 먼 지점을 바라보도록 조정. 혹은 스탠리 메소드 활용.
+# 6. 파일런 기억 및 활용: 이전 프레임의 파일런 정보를 저장하고, 현재 프레임의 파일런 감지에 활용.
 #
 # ==============================================================================
 
@@ -439,10 +439,10 @@ class ControlNode:
         self.publish_target_marker(target_point)
 
         # (선택) 디버깅 로그: 현재 곡률과 목표 속도 확인
-        # rospy.loginfo(f"Curvature: {max_curvature:.3f} | Target V: {target_v:.2f}")
+        rospy.loginfo(f"Curvature: {max_curvature:.3f} | Target V: {target_v:.2f}")
 
         return throttle, steering, brake
-        
+
     def calculate_path_curvature(self, p1, p2, p3):
         """
         세 점 (p1, p2, p3)을 지나는 외접원의 곡률(1/R)을 계산 (Menger Curvature)
