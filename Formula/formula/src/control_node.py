@@ -11,6 +11,10 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 import tf
 
+# 언더스티어가 나면 만져봐야 할 파라미터들
+# MAX_BRAKE 1.0으로
+# 
+
 # ==============================================================================
 # [TUNING] 하이퍼파라미터 설정 및 튜닝 가이드
 # ==============================================================================
@@ -65,10 +69,10 @@ LOOKAHEAD_GAIN = 0.15
 # 4. 속도 제어 (Longitudinal Control)
 # ------------------------------------------------------------------------------
 # 직선 구간에서 낼 수 있는 최대 목표 속도(m/s)입니다.
-MAX_SPEED = 25.0
+MAX_SPEED = 27.0
 
 # 급코너 등 감속해야 할 상황에서의 최소 목표 속도(m/s)입니다.
-MIN_SPEED = 5.0
+MIN_SPEED = 1.0
 
 # 코너 주행 시 속도를 줄이는 강도입니다. (물리적 타이어 마찰 한계 고려)
 # - 효과: 높을수록 코너에서 더 많이 감속하여 안전하게 돕니다. (현재 코드 로직에 반영 필요)
@@ -77,17 +81,19 @@ CORNER_STIFFNESS = 2.0
 # 가속 페달(Throttle) P제어 게인입니다.
 # - 효과: 너무 크면 휠스핀이 발생하거나 속도가 요동치고, 너무 작으면 가속이 답답합니다.
 # - 범위: 0.5 ~ 2.0
-K_ACCEL = 1.0
+K_ACCEL = 0.8
+MAX_ACCEL = 1.0
 
 # 브레이크(Brake) P제어 게인입니다.
 # - 효과: 너무 크면 바퀴가 잠길(Lock-up) 수 있습니다.
 # - 범위: 0.5 ~ 1.5
-K_BRAKE = 1.0
+K_BRAKE = 0.8
+MAX_BRAKE = 1.0
 
 # 조향각(Steering Angle)이 이 값보다 크면 '급커브'로 인식하여 감속합니다.
 # - 효과: 0.0 ~ 1.0 사이의 값 (1.0이 최대 조향). 값을 낮추면 조금만 핸들을 꺾어도 속도를 줄입니다.
 # - 범위: 0.2 ~ 0.5
-STEERING_THRESHOLD = 0.3
+STEERING_THRESHOLD = 0.25
 
 
 # ------------------------------------------------------------------------------
@@ -98,10 +104,10 @@ PREDICT_STEPS = 5
 
 # 경로의 곡률이 이 값 이상이면 감속을 시작합니다.
 # - 효과: 값이 작을수록 직선에 가까운 완만한 커브에서도 미리 감속합니다.
-CURVATURE_THRESHOLD = 0.15
+CURVATURE_THRESHOLD = 0.2
 
 # 곡률 기반 감속 시, 차보다 얼마나 앞선 지점의 곡률을 볼 것인지(시간 기준) 설정합니다.
-BRAKE_LOOKAHEAD = 2.0
+BRAKE_LOOKAHEAD = 1.2
 
 # ------------------------------------------------------------------------------
 
@@ -471,11 +477,11 @@ class ControlNode:
         return (4 * area) / (a * b * c)
 
     def pure_pursuit(self):
-        x, y, theta_deg, v = self.state
-        yaw_rad = np.radians(theta_deg)
+        x, y, theta, v = self.state
+        yaw_rad = np.radians(theta)
         
-        if not self.mid_points:
-            return 0.0, 0.0, 1.0 
+        if not self.mid_points: # 경로가 없으면 정지
+            return 0.0, 0.0, 1.0
 
         adaptive_lookahead = LOOKAHEAD_MIN + (LOOKAHEAD_GAIN * v)
         
@@ -534,21 +540,37 @@ class ControlNode:
         steering = np.arctan2(2 * WHEELBASE * np.sin(alpha), adaptive_lookahead)
         steering = np.clip(steering, -1.0, 1.0)
 
-        # 속도 제어 (간소화)
-        # 급격한 조향 시 감속
-        target_v = MAX_SPEED
-        if abs(steering) > STEERING_THRESHOLD:
-            target_v = MIN_SPEED
+        # # 속도 제어 (간소화)
+        # # 급격한 조향 시 감속
+        # target_v = MAX_SPEED
+        # if abs(steering) > STEERING_THRESHOLD:
+        #     target_v = MIN_SPEED
+
+        # [UPGRADE] 동적 속도 제어 (Dynamic Speed Profile)
+        # 조향각(steering)이 클수록 목표 속도를 줄입니다.
+        # CORNER_STIFFNESS가 클수록 코너에서 더 많이 감속합니다.
+        
+        # 1. 조향각의 크기 (절댓값)
+        steer_magnitude = abs(steering)
+        
+        # 2. 감속 적용 (기본 속도에서 조향각 비례 감속)
+        # 공식: 목표속도 = 최대속도 / (1.0 + 강성계수 * 조향각)
+        target_v = MAX_SPEED / (1.0 + CORNER_STIFFNESS * steer_magnitude)
+        
+        # 3. 최소 속도 보장 (너무 느려지지 않게)
+        target_v = max(target_v, MIN_SPEED)
+        
+        # ------------------------------------------------------
         
         throttle = 0.0
         brake = 0.0
         speed_error = target_v - v
         
         if speed_error > 0:
-            throttle = np.clip(K_ACCEL * speed_error, 0.0, 1.0)
+            throttle = np.clip(K_ACCEL * speed_error, 0.0, MAX_ACCEL)
         else:
             if speed_error < -0.5:
-                brake = np.clip(K_BRAKE * abs(speed_error), 0.0, 0.8)
+                brake = np.clip(K_BRAKE * abs(speed_error), 0.0, MAX_BRAKE)
 
         # [VISUALIZATION]
         self.publish_target_marker(target_point)
@@ -557,7 +579,15 @@ class ControlNode:
         return throttle, steering, brake
         
     def run(self):
+        x, y, theta, v = self.state
+        path = self.mid_points
+
+        # --------------------------------------------------------------------------
+
+
         throttle, steering, brake = self.pure_pursuit()
+
+        # --------------------------------------------------------------------------
 
         cmd = ControlCommand()
         cmd.header.stamp = rospy.Time.now()
@@ -572,7 +602,8 @@ class ControlNode:
 def main():
     rospy.init_node("control_node")
     node = ControlNode()
-    rate = rospy.Rate(30)
+
+    rate = rospy.Rate(30) # 30 Hz
     while not rospy.is_shutdown():
         node.run()
         rate.sleep()
