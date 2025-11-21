@@ -8,7 +8,6 @@ from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 import tf
 
-
 # 추가된 라이브러리
 
 from scipy.interpolate import splprep, splev 
