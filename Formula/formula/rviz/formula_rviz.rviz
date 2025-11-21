@@ -122,7 +122,7 @@ Visualization Manager:
       Marker Topic: /debug/yellow_boundary
       Name: Marker
       Namespaces:
-        yellow_boundary: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -130,7 +130,7 @@ Visualization Manager:
       Marker Topic: /debug/blue_boundary
       Name: Marker
       Namespaces:
-        blue_boundary: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -147,6 +147,14 @@ Visualization Manager:
       Name: Marker
       Namespaces:
         target_point: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /debug/car_info
+      Name: Marker
+      Namespaces:
+        dashboard: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -207,5 +215,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 702
-  Y: 136
+  X: 499
+  Y: 116
