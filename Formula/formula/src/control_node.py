@@ -23,7 +23,7 @@ WHEELBASE = 1.55
 LOOKAHEAD_MIN = 2.5
 LOOKAHEAD_GAIN = 0.15
 
-MAX_SPEED = 3.0
+MAX_SPEED = 12.0
 MIN_SPEED = 2.0
 CORNER_STIFFNESS = 1.0
 
@@ -33,6 +33,7 @@ K_BRAKE = 0.4
 PREDICT_STEPS = 8
 CURVATURE_THRESHOLD = 0.15
 BRAKE_LOOKAHEAD = 1.2
+MAX_CONE_CONNECT_DIST = 5.0
 
 # ==============================================================================
 
@@ -147,54 +148,116 @@ class ControlNode:
     # --------------------------------------------------------------------------
     # Path Planning & Debug Visualization
     # --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # [FIX] Path Planning: Matching Algorithm
+    # --------------------------------------------------------------------------
     def calculate_path_independent(self):
+        """
+        기존 함수 이름을 유지하되, 내부는 'Matching' 알고리즘으로 변경합니다.
+        독립적 스플라인 방식의 '경로 꼬임' 문제를 해결합니다.
+        """
         bp = [(c.location.x, c.location.y) for c in self.blue_cones]
         yp = [(c.location.x, c.location.y) for c in self.yellow_cones]
-        
+
         if len(bp) < 2 or len(yp) < 2:
             self.mid_points = []
             return
 
-        def sort_independent(pts, start_pos):
-            p = list(pts)
-            s = []
-            c = np.array([start_pos])
-            while p:
-                idx = np.argmin(cdist(c.reshape(1,2), np.array(p)))
-                c = np.array(p.pop(idx))
-                s.append(c)
-            return np.array(s)
+        # 1. 기준이 될 쪽(더 많은 콘이 있는 쪽)과 반대쪽을 정합니다.
+        if len(bp) > len(yp):
+            primary = np.array(bp)
+            secondary = np.array(yp)
+        else:
+            primary = np.array(yp)
+            secondary = np.array(bp)
 
-        car_pos = [self.state[0], self.state[1]]
+        # 2. 기준 쪽(Primary)을 차량과 가까운 순서대로 정렬합니다 (Greedy Sort)
+        #    (이전에 드린 거리 제한 로직 포함)
+        MAX_CONE_CONNECT_DIST = 5.0  # [Tuning] 콘 연결 최대 거리
+        car_pos = np.array([self.state[0], self.state[1]])
         
-        b_sorted = sort_independent(bp, car_pos)
-        y_sorted = sort_independent(yp, car_pos)
+        primary_sorted = []
+        curr = car_pos
+        p_copy = primary.tolist()
 
-        # [DEBUG] Boundary Lines 시각화
-        self.publish_boundary_line(b_sorted, "blue")
-        self.publish_boundary_line(y_sorted, "yellow")
+        while p_copy:
+            # 현재 위치(curr)에서 가장 가까운 콘 찾기
+            dists = cdist([curr], p_copy)[0]
+            idx = np.argmin(dists)
+            min_dist = dists[idx]
+
+            # 너무 멀면(트랙 건너편 등) 연결 끊기
+            if len(primary_sorted) > 0 and min_dist > MAX_CONE_CONNECT_DIST:
+                break
+            
+            # 첫 번째 점은 차에서 너무 멀면(예: 10m) 시작도 하지 않음 (이상한 점 연결 방지)
+            if len(primary_sorted) == 0 and min_dist > 15.0:
+                break
+
+            closest = p_copy.pop(idx)
+            primary_sorted.append(closest)
+            curr = closest
+
+        primary_sorted = np.array(primary_sorted)
+
+        # 3. 정렬된 Primary 콘 하나하나에 대해, 가장 가까운 Secondary 콘을 찾습니다.
+        raw_midpoints = []
+        TRACK_WIDTH_MAX = 6.0  # [Tuning] 트랙 폭보다 약간 넓게 설정 (이 이상 멀면 짝꿍 아님)
+
+        if len(secondary) > 0:
+            for p_pt in primary_sorted:
+                # p_pt와 모든 secondary 점들 사이의 거리 계산
+                dists = cdist([p_pt], secondary)[0]
+                min_idx = np.argmin(dists)
+                min_val = dists[min_idx]
+
+                # [핵심] 짝꿍 콘이 트랙 폭 이내에 있을 때만 중점 생성
+                if min_val < TRACK_WIDTH_MAX:
+                    s_pt = secondary[min_idx]
+                    mid_pt = (p_pt + s_pt) / 2
+                    raw_midpoints.append(mid_pt)
+                else:
+                    # 짝꿍이 없으면 Primary 콘에서 트랙 안쪽으로 일정 거리 띄운 가상의 점을 사용하거나
+                    # 단순히 그 점은 경로 생성에서 제외합니다.
+                    # 여기서는 간단히 제외합니다.
+                    pass
+        
+        # 4. 구해진 중점들(raw_midpoints)을 스플라인으로 부드럽게 연결
+        self.mid_points = []
+        if len(raw_midpoints) < 2:
+            # 중점이 너무 적으면 경로 생성 실패
+            return
 
         try:
-            k_val = min(3, len(b_sorted)-1, len(y_sorted)-1)
-            tck_b, _ = splprep(b_sorted.T, k=k_val, s=0)
-            tck_y, _ = splprep(y_sorted.T, k=k_val, s=0)
+            raw_midpoints = np.array(raw_midpoints)
+            
+            # 중복된 점 제거 (스플라인 에러 방지)
+            # 연속된 점들의 거리가 너무 가까우면(0.1m 미만) 제거
+            unique_mids = [raw_midpoints[0]]
+            for i in range(1, len(raw_midpoints)):
+                if np.linalg.norm(raw_midpoints[i] - unique_mids[-1]) > 0.5:
+                    unique_mids.append(raw_midpoints[i])
+            unique_mids = np.array(unique_mids)
 
-            u = np.linspace(0, 1, 50)
-            bx, by = splev(u, tck_b)
-            yx, yy = splev(u, tck_y)
+            if len(unique_mids) < 2:
+                return
 
-            mid_x = (bx + yx) / 2
-            mid_y = (by + yy) / 2
+            # 스플라인 생성
+            k_val = min(3, len(unique_mids) - 1)
+            tck, u = splprep(unique_mids.T, k=k_val, s=0.5) # s는 스무딩 계수
+            
+            # 경로 점 생성
+            u_new = np.linspace(0, 1, len(unique_mids) * 5) # 점 밀도 높임
+            x_new, y_new = splev(u_new, tck)
 
-            self.mid_points = []
-            for i in range(len(mid_x)):
+            for i in range(len(x_new)):
                 p = Point()
-                p.x, p.y = mid_x[i], mid_y[i]
+                p.x, p.y = x_new[i], y_new[i]
                 self.mid_points.append(p)
-
+                
         except Exception as e:
-            # rospy.logwarn(f"Spline error: {e}")
-            self.mid_points = []
+            rospy.logwarn(f"Spline generation failed: {e}")
+            self.mid_points = []   
 
     def publish_boundary_line(self, sorted_points, color_type):
         """ 정렬된 콘들을 잇는 선을 시각화 """
