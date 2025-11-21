@@ -73,6 +73,7 @@ class Brain():
         angle(rad) : -0.5 ~ +0.5 (시계 방향-  반시계 방향+)
         speed(m/s) : 0 ~ 4       (음수면 후진)     
         """
+        print(lidar_data)
         angle = 0
         speed = 0
 
